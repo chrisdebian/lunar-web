@@ -25,6 +25,27 @@
         />
       </svg>
 
+      <!-- A few stars that slowly twinkle (separate elements: cheap to animate on phones) -->
+      <span
+        v-for="(star, index) in twinkles"
+        :key="`twinkle-${index}`"
+        class="twinkle absolute rounded-full bg-white"
+        :style="{
+          left: `${star.x}%`,
+          top: `${star.y}%`,
+          width: `${star.size}px`,
+          height: `${star.size}px`,
+          animationDuration: `${star.duration}s`,
+          animationDelay: `${star.delay}s`
+        }"
+      />
+
+      <!-- One shooting star per session, a while after the page settles -->
+      <span
+        class="shooting-star absolute"
+        :class="{ 'is-shooting': isShooting }"
+      />
+
       <!-- The moon: low on the right, cropped by the viewport edge -->
       <div class="hero-moon absolute">
         <div class="hero-moon-set">
@@ -90,8 +111,45 @@ onMounted(async () => {
   // Two frames: the (nearly invisible) moon gets painted before anything moves.
   requestAnimationFrame(() => requestAnimationFrame(() => {
     isMoonReady.value = true
+    scheduleShootingStar()
   }))
 })
+
+const twinkles = [
+  { x: 9, y: 14, size: 2.5, duration: 6.5, delay: 0 },
+  { x: 47, y: 9, size: 2, duration: 8.5, delay: 2.2 },
+  { x: 60, y: 30, size: 2.5, duration: 5.5, delay: 1.1 },
+  { x: 34, y: 82, size: 2, duration: 7.5, delay: 3.4 }
+]
+
+/*
+ * A single shooting star, once per browser session, ~8s after the page has settled — and only if
+ * the hero is still on screen and the tab is visible. Most visitors won't see it; that's the point.
+ */
+const SHOOTING_STAR_KEY = 'lunar:shooting-star-seen'
+const isShooting = ref(false)
+let shootingTimer: ReturnType<typeof setTimeout> | undefined
+
+const scheduleShootingStar = () => {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+  try {
+    if (sessionStorage.getItem(SHOOTING_STAR_KEY)) return
+  } catch {
+    // Storage unavailable (private mode, blocked): just allow it.
+  }
+  shootingTimer = setTimeout(() => {
+    const heroInView = window.scrollY < window.innerHeight * 0.5
+    if (!heroInView || document.visibilityState !== 'visible') return
+    isShooting.value = true
+    try {
+      sessionStorage.setItem(SHOOTING_STAR_KEY, '1')
+    } catch {
+      // Ignore: worst case it can show again this session.
+    }
+  }, 8000)
+}
+
+onBeforeUnmount(() => clearTimeout(shootingTimer))
 
 // Without JavaScript nothing would start the animations: show the moon as is.
 useHead({
@@ -122,6 +180,57 @@ const stars: Star[] = Array.from({ length: 140 }, () => {
 </script>
 
 <style scoped>
+.twinkle {
+  box-shadow: 0 0 6px 1px color-mix(in oklab, var(--color-indigo-200) 50%, transparent);
+  opacity: 0.85;
+  will-change: opacity;
+  animation-name: twinkle;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0.85;
+  }
+  50% {
+    opacity: 0.2;
+  }
+}
+
+/* A thin streak, head on the right; it travels along its own (tilted) axis. */
+.shooting-star {
+  left: 30%;
+  top: 12%;
+  width: 140px;
+  height: 1.5px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--color-indigo-100) 80%, transparent) 70%, #fff);
+  opacity: 0;
+  transform: rotate(18deg);
+  transform-origin: left center;
+  will-change: transform, opacity;
+}
+
+.shooting-star.is-shooting {
+  animation: shooting-star 0.9s cubic-bezier(0.2, 0.6, 0.4, 1) forwards;
+}
+
+@keyframes shooting-star {
+  0% {
+    opacity: 0;
+    transform: rotate(18deg) translateX(0) scaleX(0.4);
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(18deg) translateX(min(38vw, 520px)) scaleX(1);
+  }
+}
+
 .hero-sky {
   mask-image: linear-gradient(to bottom, transparent 0, black 12%, black 60%, transparent 100%);
 }
@@ -232,6 +341,11 @@ const stars: Star[] = Array.from({ length: 140 }, () => {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .twinkle,
+  .shooting-star {
+    animation: none !important;
+  }
+
   .hero-moon-set,
   .hero-moon-rise,
   .hero-stars,
