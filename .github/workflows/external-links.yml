@@ -1,0 +1,60 @@
+# Checks every link to another website once a week. Broken ones are listed in a
+# "Broken external links" issue, which is updated on later runs and closed when they all work again.
+# Outside sites go down for reasons that have nothing to do with a PR, so this doesn't run on PRs.
+name: External links
+
+on:
+  schedule:
+    - cron: '17 6 * * 1' # Mondays, 06:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: external-links
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: yarn
+
+      - run: yarn install --frozen-lockfile
+
+      - run: yarn generate
+
+      - name: Check external links
+        run: yarn check-links --external --report external-links.md
+
+      - name: Open, update or close the issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title='Broken external links'
+          number=$(gh issue list --state open --search "\"$title\" in:title" --json number,title \
+            --jq "map(select(.title == \"$title\"))[0].number // empty")
+
+          if [ -s external-links.md ]; then
+            {
+              cat external-links.md
+              echo
+              echo "Found by the weekly [external link check]($RUN_URL). This issue is updated on every run"
+              echo "and closed automatically once all links work again."
+            } > issue.md
+            if [ -n "$number" ]; then
+              gh issue edit "$number" --body-file issue.md
+            else
+              gh issue create --title "$title" --body-file issue.md
+            fi
+          elif [ -n "$number" ]; then
+            gh issue close "$number" --comment "All external links respond again ([check]($RUN_URL))."
+          fi

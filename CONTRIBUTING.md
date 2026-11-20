@@ -7,7 +7,7 @@ Thanks for helping improve the Lunar Linux website. Questions are welcome in `#l
 
 1. Fork the repository and create a branch.
 2. Make your changes. Run `yarn dev` to preview them.
-3. Run `yarn verify` (lint, typecheck, content check, build and link check). CI runs the same checks.
+3. Run `yarn verify` (lint, typecheck, unit tests, content check, build and link check). CI runs the same checks.
 4. Open a pull request.
 
 By contributing you agree that code is licensed under [MIT](LICENSE) and documentation/news under

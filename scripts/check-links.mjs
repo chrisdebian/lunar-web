@@ -3,12 +3,14 @@
 //
 //   yarn generate && yarn check-links            internal links + #anchors (fails on errors)
 //   yarn check-links --external                  also request every external URL (reported as warnings)
+//   yarn check-links --external --report file.md also write broken external links to a Markdown file
+//                                                (only created when there are any; used by CI)
 //   NUXT_APP_BASE_URL=/lunar-www/ yarn check-links   check a build made for a sub-path
 //
 // Internal links must resolve to a generated file, stay inside the base URL, and any #anchor must
 // exist on the target page. `href="#"` placeholders are reported as warnings.
 
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { join, relative, sep } from 'node:path'
 import process from 'node:process'
 
@@ -20,6 +22,7 @@ const option = (name, fallback) => {
 
 const outputDir = option('--dir', '.output/public')
 const checkExternal = args.includes('--external')
+const reportFile = option('--report')
 const base = `/${(option('--base', process.env.NUXT_APP_BASE_URL || '/')).replace(/^\/+|\/+$/g, '')}/`.replace('//', '/')
 // Absolute links to the site itself (canonical, og:url) are checked as internal links.
 const siteUrl = option('--site-url', process.env.NUXT_PUBLIC_SITE_URL || 'https://lunar-linux.org/').replace(/\/?$/, '/')
@@ -140,20 +143,45 @@ if (checkExternal) {
       signal: AbortSignal.timeout(15_000),
       headers: { 'user-agent': 'lunar-www-link-checker' }
     })
-    try {
-      let response = await request('HEAD')
-      if (response.status >= 400) response = await request('GET')
-      if (response.status >= 400) problems.push(`${response.status} ${url}`)
-    } catch (error) {
-      problems.push(`${error.cause?.code ?? error.name} ${url}`)
+    // Sites blip: a failing URL gets a second chance a few seconds later before it's reported.
+    let problem
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        let response = await request('HEAD')
+        if (response.status >= 400) response = await request('GET')
+        if (response.status < 400) return
+        problem = `${response.status} ${url}`
+      } catch (error) {
+        problem = `${error.cause?.code ?? error.name} ${url}`
+      }
+      if (attempt === 1) await new Promise(resolve => setTimeout(resolve, 5000))
     }
+    problems.push(problem)
   }
   for (let i = 0; i < urls.length; i += 8) await Promise.all(urls.slice(i, i + 8).map(check))
+  const rows = []
   for (const problem of problems.sort()) {
+    const status = problem.slice(0, problem.indexOf(' '))
     const url = problem.slice(problem.indexOf(' ') + 1)
-    console.warn(`⚠ external ${problem}  (on ${[...external.get(url)].join(', ')})`)
+    const pages = [...external.get(url)]
+    console.warn(`⚠ external ${problem}  (on ${pages.join(', ')})`)
+    rows.push(`| ${status} | <${url}> | ${pages.map(page => `\`${page}\``).join(', ')} |`)
   }
   if (!problems.length) console.log('✔ All external URLs responded.')
+
+  if (reportFile) {
+    rmSync(reportFile, { force: true })
+    if (rows.length) {
+      writeFileSync(reportFile, [
+        `${rows.length} external link(s) didn't respond:`,
+        '',
+        '| Status | URL | Linked from |',
+        '| --- | --- | --- |',
+        ...rows,
+        ''
+      ].join('\n'))
+    }
+  }
 }
 
 if (errors.length) {

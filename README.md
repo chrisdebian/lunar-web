@@ -81,6 +81,7 @@ docker build -t lunar-www \
 ```bash
 yarn lint             # ESLint (yarn lint:fix to auto-fix)
 yarn typecheck        # vue-tsc
+yarn test             # unit tests (Vitest): moon phases, dates, docs tree, link checker
 yarn check-content    # frontmatter + internal links in content/
 yarn generate
 yarn check-links      # every link and #anchor in the built site (add --external for outside URLs)
@@ -92,15 +93,19 @@ The build itself also fails if any page links to a page that doesn't exist.
 
 ## Continuous integration and previews
 
-- `.github/workflows/ci.yml` runs on every push and pull request: lint, typecheck, content check,
-  root and sub-path builds with link checks, an informational external-link check, and a Docker
-  build with smoke tests.
+- `.github/workflows/ci.yml` runs on every push and pull request: lint, typecheck, unit tests,
+  content check, root and sub-path builds with link checks, `actionlint` on the workflows, and a
+  Docker build with smoke tests.
+- `.github/workflows/external-links.yml` checks every link to another website each Monday. Broken
+  ones are listed in a "Broken external links" issue that is updated on later runs and closed when
+  they all work again. Run it any time from the Actions tab.
 - `.github/workflows/pages.yml` publishes `main` to the root of the GitHub Pages site on every push,
   e.g. `https://<owner>.github.io/<repo>/`.
 - `.github/workflows/pr-preview.yml` publishes every pull request to
-  `https://<owner>.github.io/<repo>/pr-preview/pr-<number>/` and comments the link (and a QR code,
-  handy for testing on a phone) on the PR. It updates on every push and is removed when the PR is
-  closed or merged. PRs from forks get no preview: GitHub gives them a read-only token.
+  `https://<owner>.github.io/<repo>/pr-preview/pr-<number>/`. Once the preview is live, it comments
+  the link (and a QR code, handy for testing on a phone) on the PR and adds a *View deployment*
+  button. It updates on every push and is removed when the PR is closed or merged. PRs from forks
+  get no preview: GitHub gives them a read-only token.
 
 Both build with `.github/actions/build-site` and push to the `gh-pages` branch. Everything published
 there is marked `noindex`.
@@ -109,6 +114,10 @@ One-time setup, after the first push to `main` has created the `gh-pages` branch
 *Settings → Pages → Build and deployment → Source: Deploy from a branch*, branch `gh-pages`, folder
 `/ (root)`. If the organization limits workflow permissions, allow *Read and write permissions* under
 *Settings → Actions → General*.
+
+Actions are pinned to full commit SHAs, with the version in a comment. Dependabot
+(`.github/dependabot.yml`) opens one grouped PR a week when any of them has a new release. Its PRs
+run CI but get no preview, like PRs from forks.
 
 ## Project layout
 

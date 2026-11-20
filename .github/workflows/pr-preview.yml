@@ -1,5 +1,6 @@
 # Builds every pull request and publishes it to GitHub Pages under pr-preview/pr-<number>/,
-# then comments the link on the PR. The preview is removed when the PR is closed or merged.
+# then comments the link on the PR and adds a "View deployment" button. The preview is removed
+# when the PR is closed or merged.
 #
 # Previews live on the gh-pages branch next to the main preview (see pages.yml). One-time setup:
 # Settings → Pages → Build and deployment → Source: "Deploy from a branch", branch gh-pages, / (root).
@@ -13,7 +14,7 @@ on:
 
 permissions:
   contents: write # push to gh-pages
-  pages: read # look up the Pages URL
+  pages: read # look up the Pages URL and wait for the Pages build
   pull-requests: write # comment the preview link
 
 concurrency:
@@ -21,25 +22,45 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  preview:
-    if: github.event.pull_request.head.repo.full_name == github.repository
+  publish:
+    if: github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    # Shows a "View deployment" button on the PR
+    environment:
+      name: pr-preview
+      url: ${{ steps.preview.outputs.preview-url }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # Not needed when the PR is closed: the action only removes the preview then.
       - name: Build
         id: build
-        if: github.event.action != 'closed'
         uses: ./.github/actions/build-site
         with:
           folder: pr-preview/pr-${{ github.event.number }}
 
-      - name: Publish or remove the preview
+      - name: Publish the preview
+        id: preview
         uses: rossjrw/pr-preview-action@873417d2df72380da1f3978378fb58560bcde976 # v1.8.2
         with:
+          action: deploy
           source-dir: .output/public
           preview-branch: gh-pages
           umbrella-dir: pr-preview
-          # For the link in the comment; it handles custom domains too. Empty (guessed) on close.
+          # For the link; it handles custom domains too.
           pages-base-url: ${{ steps.build.outputs.pages-host-path }}
+          # Comment only once the preview is live, so the link never 404s.
+          wait-for-pages-deployment: true
+
+  remove:
+    if: github.event.action == 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      # The deploy action used inside pr-preview-action works from a checkout.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Remove the preview
+        uses: rossjrw/pr-preview-action@873417d2df72380da1f3978378fb58560bcde976 # v1.8.2
+        with:
+          action: remove
+          preview-branch: gh-pages
+          umbrella-dir: pr-preview

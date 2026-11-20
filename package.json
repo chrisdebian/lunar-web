@@ -15,7 +15,8 @@
     "typecheck": "nuxt typecheck",
     "check-content": "node scripts/check-content.mjs",
     "check-links": "node scripts/check-links.mjs",
-    "verify": "yarn lint && yarn typecheck && yarn check-content && yarn generate && yarn check-links"
+    "test": "vitest run",
+    "verify": "yarn lint && yarn typecheck && yarn test && yarn check-content && yarn generate && yarn check-links"
   },
   "dependencies": {
     "@iconify-json/ph": "^1.2.2",
@@ -39,6 +40,7 @@
     "rolldown": "~1.2.19",
     "typescript": "^6.0.0",
     "vite": "^8.3.5",
+    "vitest": "^5.1.1",
     "vue-tsc": "^3.3.14"
   },
   "engines": {
