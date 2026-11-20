@@ -21,7 +21,9 @@ export default defineContentConfig({
       type: 'page',
       source: 'news/*.md',
       schema: z.object({
-        date: z.date()
+        date: z.date(),
+        // Filled in at build time (nuxt.config.ts hook), not in frontmatter.
+        readingTime: z.number().optional()
       })
     })
   }

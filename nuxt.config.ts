@@ -109,6 +109,17 @@ export default defineNuxtConfig({
     }
   },
 
+  hooks: {
+    // Reading time for news articles, in minutes (about 200 words a minute). Parsed files are cached
+    // by content: after changing this, delete .data/content to recompute unchanged articles locally.
+    'content:file:afterParse': ({ file, content, collection }) => {
+      if (collection.name !== 'news') return
+      const text = file.body.replace(/^---[\s\S]*?\n---/, '')
+      const words = text.split(/\s+/).filter(Boolean).length
+      content.readingTime = Math.ceil(words / 200)
+    }
+  },
+
   eslint: {
     config: {
       stylistic: {
