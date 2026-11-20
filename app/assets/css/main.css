@@ -1,0 +1,65 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme {
+  /* Inter is self-hosted at build time by @nuxt/fonts. */
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  --animate-fade-in: fade-in 0.2s ease-in-out;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+/* Content overrides. Unlayered on purpose: Tailwind 4 puts typography (`prose`) in the utilities
+   layer, which would beat anything in @layer components. */
+
+/* Headings are wrapped in a self-link (#anchor); keep them looking like headings. */
+.prose :is(h1, h2, h3, h4, h5, h6) > a {
+  color: inherit;
+  font-weight: inherit;
+  text-decoration: none;
+}
+
+.prose :is(h1, h2, h3, h4, h5, h6) > a:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--color-gray-600);
+  text-underline-offset: 0.25em;
+}
+
+/* No literal backticks around inline code. */
+.prose :where(code):not(:where(pre *))::before,
+.prose :where(code):not(:where(pre *))::after {
+  content: none;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Keep anchor targets (sections, headings) clear of the fixed header. */
+  [id] {
+    scroll-margin-top: 7rem;
+  }
+
+  body {
+    min-height: 100vh;
+    overflow-x: hidden;
+    background-color: var(--color-gray-950);
+  }
+
+  /* Tailwind v4 no longer sets a pointer cursor on buttons. */
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}

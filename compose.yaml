@@ -1,0 +1,12 @@
+# docker compose up --build   → http://localhost:8080/
+services:
+  web:
+    build:
+      context: .
+      args:
+        NUXT_APP_BASE_URL: ${NUXT_APP_BASE_URL:-/}
+        NUXT_PUBLIC_SITE_URL: ${NUXT_PUBLIC_SITE_URL:-https://lunar-linux.org/}
+    image: lunar-www:latest
+    ports:
+      - "${PORT:-8080}:80"
+    restart: unless-stopped
