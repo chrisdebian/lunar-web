@@ -39,7 +39,7 @@
       <div class="max-w-xl">
         <h1
           id="hero-title"
-          class="font-display text-4xl leading-[1.1] font-medium tracking-tight text-white sm:text-5xl lg:text-6xl"
+          class="text-4xl leading-[1.1] font-bold tracking-[-0.035em] text-balance text-white sm:text-5xl lg:text-6xl"
         >
           Build your Linux from source.
         </h1>

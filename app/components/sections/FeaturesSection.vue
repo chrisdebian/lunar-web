@@ -8,7 +8,7 @@
       <div>
         <h2
           id="features-title"
-          class="font-display text-3xl font-medium tracking-tight text-white sm:text-4xl"
+          class="text-3xl font-bold tracking-[-0.03em] text-white sm:text-4xl"
         >
           Why Lunar Linux
         </h2>
