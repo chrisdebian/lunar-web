@@ -93,8 +93,10 @@ The build itself also fails if any page links to a page that doesn't exist.
 ## Continuous integration and previews
 
 - `.github/workflows/ci.yml` runs on every push and pull request: lint, typecheck, content check,
-  root and sub-path builds with link checks, an informational external-link check, and a Docker
-  build with smoke tests.
+  root and sub-path builds with link checks, and a Docker build with smoke tests.
+- `.github/workflows/external-links.yml` checks every link to another website each Monday. Broken
+  ones are listed in a "Broken external links" issue that is updated on later runs and closed when
+  they all work again. Run it any time from the Actions tab.
 - `.github/workflows/pages.yml` publishes `main` to the root of the GitHub Pages site on every push,
   e.g. `https://<owner>.github.io/<repo>/`.
 - `.github/workflows/pr-preview.yml` publishes every pull request to
