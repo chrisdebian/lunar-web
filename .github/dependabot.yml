@@ -1,0 +1,16 @@
+# Keeps the pinned GitHub Actions (commit SHA + version comment) up to date.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    # "/" covers .github/workflows; the composite action needs its own entry.
+    directories:
+      - /
+      - /.github/actions/build-site
+    schedule:
+      interval: weekly
+    # One PR for all action updates instead of one per action
+    groups:
+      actions:
+        patterns: ['*']
+    commit-message:
+      prefix: ci

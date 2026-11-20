@@ -110,6 +110,10 @@ One-time setup, after the first push to `main` has created the `gh-pages` branch
 `/ (root)`. If the organization limits workflow permissions, allow *Read and write permissions* under
 *Settings → Actions → General*.
 
+Actions are pinned to full commit SHAs, with the version in a comment. Dependabot
+(`.github/dependabot.yml`) opens one grouped PR a week when any of them has a new release. Its PRs
+run CI but get no preview, like PRs from forks.
+
 ## Project layout
 
 ```text
