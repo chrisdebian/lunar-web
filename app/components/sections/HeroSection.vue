@@ -29,11 +29,7 @@
       <div class="hero-moon absolute">
         <div class="hero-moon-set">
           <div class="hero-moon-rise">
-            <LunarMoon
-              :key="intro"
-              :intro="intro"
-              class="h-full w-full"
-            />
+            <LunarMoon class="h-full w-full" />
           </div>
         </div>
       </div>
@@ -71,14 +67,6 @@
 </template>
 
 <script setup lang="ts">
-// TEMPORARY (intro comparison): /?intro=light (default) | glint | none
-type Intro = 'light' | 'glint' | 'none'
-const route = useRoute()
-const intro = computed<Intro>(() => {
-  const value = String(route.query.intro)
-  return value === 'glint' || value === 'none' ? value : 'light'
-})
-
 type Star = { x: number, y: number, r: number, o: number }
 
 // Small deterministic PRNG (mulberry32) so the starfield is identical on every render.

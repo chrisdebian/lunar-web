@@ -3,7 +3,6 @@
   <svg
     viewBox="0 0 1000 1000"
     class="overflow-visible"
-    :class="`moon-intro-${intro}`"
     aria-hidden="true"
     focusable="false"
   >
@@ -165,6 +164,15 @@
       </clipPath>
     </defs>
 
+    <!-- The moon sits in front of the stars: an opaque night-sky disc hides them -->
+    <circle
+      cx="500"
+      cy="500"
+      r="400"
+      fill="#0A0F22"
+    />
+
+    <!-- Halo, drawn over the disc too so the dark side keeps its glow -->
     <circle
       cx="470"
       cy="490"
@@ -235,34 +243,12 @@
           :r="crater.r"
           :fill="`url(#${id('crater')})`"
         />
-        <!-- "glint" intro: a highlight running once along the lit limb -->
-        <circle
-          v-if="intro === 'glint'"
-          class="moon-glint"
-          cx="500"
-          cy="500"
-          r="394"
-          fill="none"
-          stroke="#F5F7FF"
-          stroke-width="28"
-          stroke-linecap="round"
-          :filter="`url(#${id('soft')})`"
-        />
       </g>
     </g>
   </svg>
 </template>
 
 <script setup lang="ts">
-withDefaults(defineProps<{
-  /**
-   * One-off animation when the moon appears:
-   * - light: the shadow slides off the disc and the crescent grows into its final shape
-   * - glint: a highlight runs once along the lit edge
-   */
-  intro?: 'light' | 'glint' | 'none'
-}>(), { intro: 'light' })
-
 // Unique ids per instance so several moons on one page don't share <defs>.
 const uid = useId()
 const id = (name: string) => `moon-${uid}-${name}`
@@ -281,10 +267,10 @@ const craters = [
 
 <style scoped>
 /*
- * "First light": the shadow disc starts centred on the moon (nothing lit) and slides to its
- * resting place (cx 745, cy 470), leaving exactly the static crescent.
+ * "First light" when the moon appears: the shadow disc starts centred on the moon (nothing lit)
+ * and slides to its resting place (cx 745, cy 470), leaving exactly the static crescent.
  */
-.moon-intro-light .moon-shadow {
+.moon-shadow {
   animation: moon-first-light 1.2s cubic-bezier(0.45, 0.05, 0.25, 1) 0.35s both;
 }
 
@@ -297,42 +283,9 @@ const craters = [
   }
 }
 
-/*
- * "Glint": a short dash on a circle. SVG circles start at 3 o'clock and run clockwise
- * (circumference 2π·394 ≈ 2476): 12 o'clock is at ~1857, 6 o'clock at ~619. Moving the dash
- * backwards along the path sweeps it over the left (lit) limb from top to bottom.
- */
-.moon-glint {
-  stroke-dasharray: 360 2116;
-  stroke-dashoffset: -1857;
-  opacity: 0;
-  animation: moon-glint 1.1s cubic-bezier(0.45, 0, 0.2, 1) 0.9s forwards;
-}
-
-@keyframes moon-glint {
-  0% {
-    stroke-dashoffset: -1857;
-    opacity: 0;
-  }
-  20% {
-    opacity: 1;
-  }
-  75% {
-    opacity: 1;
-  }
-  100% {
-    stroke-dashoffset: -259;
-    opacity: 0;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .moon-intro-light .moon-shadow {
+  .moon-shadow {
     animation: none;
-  }
-
-  .moon-glint {
-    display: none;
   }
 }
 </style>
