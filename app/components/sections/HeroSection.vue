@@ -99,21 +99,8 @@
  * browser is busy fetching and starting the app, swapping in fonts and painting the moon's
  * noise texture for the first time, and the animation would stutter. Cached loads start at once.
  */
-const isMoonReady = ref(false)
-const MAX_WAIT_MS = 2500
-
-onMounted(async () => {
-  const pageLoaded = document.readyState === 'complete'
-    ? Promise.resolve()
-    : new Promise(resolve => window.addEventListener('load', resolve, { once: true }))
-  const timeout = new Promise(resolve => setTimeout(resolve, MAX_WAIT_MS))
-  await Promise.race([Promise.all([pageLoaded, document.fonts.ready]), timeout])
-  // Two frames: the (nearly invisible) moon gets painted before anything moves.
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    isMoonReady.value = true
-    scheduleShootingStar()
-  }))
-})
+const isMoonReady = usePageSettled()
+watch(isMoonReady, () => scheduleShootingStar(), { once: true })
 
 const twinkles = [
   { x: 9, y: 14, size: 2.5, duration: 6.5, delay: 0 },

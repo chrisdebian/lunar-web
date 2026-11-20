@@ -4,8 +4,6 @@ description: Lunar Linux is changing its release strategy to provide more freque
 date: 2023-08-20
 ---
 
-# Moving Towards a More Aggressive Release Cycle
-
 The Lunar Linux team is excited to announce that we are implementing a more aggressive release cycle to better serve our users and keep pace with the rapidly evolving Linux ecosystem.
 
 ## What This Means For Users

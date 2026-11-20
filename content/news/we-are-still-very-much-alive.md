@@ -4,8 +4,6 @@ description: Despite periods of quiet development, Lunar Linux continues to thri
 date: 2017-10-15
 ---
 
-# We Are Still Very Much Alive
-
 We've noticed some concern in the Linux community about the state of Lunar Linux, given periods of apparent inactivity on our public-facing channels. We'd like to take this opportunity to assure everyone that Lunar Linux is still very much alive and under active development.
 
 ## Behind the Scenes

@@ -4,8 +4,6 @@ description: Lunar Linux is transitioning its IRC presence to the Libera.Chat ne
 date: 2021-05-25
 ---
 
-# We Are Moving to Libera.Chat Network
-
 In light of recent developments in the IRC community, the Lunar Linux team has decided to migrate our official IRC presence from Freenode to the [Libera.Chat](https://libera.chat/) network.
 
 ## Why We're Moving
@@ -16,9 +14,9 @@ As many of you may be aware, there have been significant changes in the manageme
 
 You can now find us in the **#lunar** channel on the Libera.Chat network. Here's how to connect:
 
-**Server:** irc.libera.chat
-**Port:** 6667 (plain text) or 6697 (SSL)
-**Channel:** #lunar
+- **Server:** irc.libera.chat
+- **Port:** 6667 (plain text) or 6697 (SSL)
+- **Channel:** #lunar
 
 Many IRC clients allow you to connect using the server name directly:
 

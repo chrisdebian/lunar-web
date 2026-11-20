@@ -81,7 +81,7 @@
 const { withBase } = useSiteLinks()
 
 const { data: articles } = await useAsyncData('news-latest', () =>
-  queryCollection('news').select('title', 'description', 'date', 'path').order('date', 'DESC').limit(3).all(),
+  queryCollection('news').select('title', 'description', 'date', 'path').order('date', 'DESC').order('path', 'ASC').limit(3).all(),
 { default: () => [] }
 )
 </script>
