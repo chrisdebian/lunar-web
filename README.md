@@ -98,9 +98,10 @@ The build itself also fails if any page links to a page that doesn't exist.
 - `.github/workflows/pages.yml` publishes `main` to the root of the GitHub Pages site on every push,
   e.g. `https://<owner>.github.io/<repo>/`.
 - `.github/workflows/pr-preview.yml` publishes every pull request to
-  `https://<owner>.github.io/<repo>/pr-preview/pr-<number>/` and comments the link (and a QR code,
-  handy for testing on a phone) on the PR. It updates on every push and is removed when the PR is
-  closed or merged. PRs from forks get no preview: GitHub gives them a read-only token.
+  `https://<owner>.github.io/<repo>/pr-preview/pr-<number>/`. Once the preview is live, it comments
+  the link (and a QR code, handy for testing on a phone) on the PR and adds a *View deployment*
+  button. It updates on every push and is removed when the PR is closed or merged. PRs from forks
+  get no preview: GitHub gives them a read-only token.
 
 Both build with `.github/actions/build-site` and push to the `gh-pages` branch. Everything published
 there is marked `noindex`.
