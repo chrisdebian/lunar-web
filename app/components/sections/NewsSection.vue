@@ -45,10 +45,17 @@
             :to="article.path"
             class="group grid gap-x-10 gap-y-2 py-7 md:grid-cols-[10rem_minmax(0,1fr)]"
           >
-            <time
-              :datetime="String(article.date)"
-              class="pt-1 text-sm text-gray-500 tabular-nums"
-            >{{ formatDate(article.date) }}</time>
+            <!-- The moon on the night it was posted, as in the news log -->
+            <p class="flex items-center gap-3 self-start pt-1 text-sm">
+              <MoonPhaseIcon
+                :phase="moonPhaseAt(new Date(article.date))"
+                class="h-5 w-5 shrink-0 transition-transform duration-300 group-hover:scale-110"
+              />
+              <time
+                :datetime="String(article.date)"
+                class="text-gray-500 tabular-nums"
+              >{{ formatDate(article.date) }}</time>
+            </p>
             <div>
               <h3
                 class="font-semibold text-white transition-colors group-hover:text-indigo-200"
