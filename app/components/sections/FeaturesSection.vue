@@ -63,28 +63,23 @@
             <span class="h-3 w-3 rounded-full bg-white/10" />
             <span class="h-3 w-3 rounded-full bg-white/10" />
           </div>
-          <Transition
-            mode="out-in"
-            enter-active-class="transition duration-200 ease-out"
-            enter-from-class="opacity-0 translate-y-1"
-            leave-active-class="transition duration-100 ease-in"
-            leave-to-class="opacity-0"
-          >
-            <div
-              :key="active"
-              class="px-6 py-8 font-mono text-sm leading-7 sm:text-base"
-            >
-              <p class="text-gray-500">
-                # {{ current.comment }}
-              </p>
-              <p class="text-gray-100">
-                <span
-                  class="text-purple-300 select-none"
-                  aria-hidden="true"
-                >$ </span>{{ current.command }}
-              </p>
-            </div>
-          </Transition>
+          <div class="px-6 py-8 font-mono text-sm leading-7 sm:text-base">
+            <p class="text-gray-500">
+              # {{ current.comment }}
+            </p>
+            <p class="text-gray-100">
+              <span
+                class="text-purple-300 select-none"
+                aria-hidden="true"
+              >$ </span>
+              <!-- Screen readers get the whole command; the typing is visual only -->
+              <span class="sr-only">{{ current.command }}</span>
+              <span aria-hidden="true">{{ typed }}</span><span
+                class="terminal-cursor"
+                aria-hidden="true"
+              />
+            </p>
+          </div>
         </div>
         <p class="mt-6 max-w-xl text-gray-300">
           {{ current.detail }}
@@ -137,6 +132,30 @@ const features: Feature[] = [
 
 const active = ref(0)
 const current = computed(() => features[active.value]!)
+
+/*
+ * Picking a feature types its command out, like a real terminal (only in response to a click or
+ * key press; the first command is simply shown). Total time stays under half a second.
+ */
+const typed = ref(features[0]!.command)
+let typingTimer: ReturnType<typeof setInterval> | undefined
+
+watch(active, () => {
+  clearInterval(typingTimer)
+  const command = current.value.command
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    typed.value = command
+    return
+  }
+  const interval = Math.min(35, 420 / command.length)
+  typed.value = ''
+  typingTimer = setInterval(() => {
+    typed.value = command.slice(0, typed.value.length + 1)
+    if (typed.value.length === command.length) clearInterval(typingTimer)
+  }, interval)
+})
+
+onBeforeUnmount(() => clearInterval(typingTimer))
 const tabs = ref<HTMLButtonElement[]>([])
 
 // Arrow keys move between tabs (WAI-ARIA tabs pattern).
@@ -152,3 +171,28 @@ const onKeydown = (event: KeyboardEvent) => {
   tabs.value[next]?.focus()
 }
 </script>
+
+<style scoped>
+.terminal-cursor {
+  display: inline-block;
+  width: 0.55em;
+  height: 1.1em;
+  margin-left: 0.15em;
+  vertical-align: -0.2em;
+  background: var(--color-indigo-300);
+  opacity: 0.8;
+  animation: cursor-blink 1.1s steps(1) infinite;
+}
+
+@keyframes cursor-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .terminal-cursor {
+    animation: none;
+  }
+}
+</style>
