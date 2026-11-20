@@ -29,7 +29,12 @@
       <div class="hero-moon absolute">
         <div class="hero-moon-set">
           <div class="hero-moon-rise">
-            <LunarMoon class="h-full w-full" />
+            <!-- Rendered after load: the phase depends on the visitor's date, not the build date -->
+            <LunarMoon
+              v-if="phase !== null"
+              :phase="phase"
+              class="h-full w-full"
+            />
           </div>
         </div>
       </div>
@@ -67,6 +72,20 @@
 </template>
 
 <script setup lang="ts">
+// Tonight's moon. `?phase=0..1` previews a specific phase (0 new, 0.5 full).
+const route = useRoute()
+const phase = ref<number | null>(null)
+
+onMounted(() => {
+  const preview = Number.parseFloat(String(route.query.phase))
+  phase.value = Number.isFinite(preview) ? preview : moonPhaseAt()
+})
+
+watch(() => route.query.phase, (value) => {
+  const preview = Number.parseFloat(String(value))
+  phase.value = Number.isFinite(preview) ? preview : moonPhaseAt()
+})
+
 type Star = { x: number, y: number, r: number, o: number }
 
 // Small deterministic PRNG (mulberry32) so the starfield is identical on every render.
