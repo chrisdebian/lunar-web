@@ -112,9 +112,13 @@ const stars: Star[] = Array.from({ length: 140 }, () => {
   }
 }
 
+/*
+ * On phones the moon sits behind the text: dim its light (not the whole moon, which would let the
+ * stars show through the dark side).
+ */
 @media (max-width: 767px) {
   .hero-moon {
-    opacity: 0.55;
+    --moon-light: 0.35;
   }
 }
 
