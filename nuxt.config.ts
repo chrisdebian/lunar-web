@@ -39,6 +39,12 @@ export default defineNuxtConfig({
         lang: 'en',
         class: 'bg-gray-950'
       },
+      meta: [
+        // The site is dark by design: tell browsers (scrollbars, form controls) ...
+        { name: 'color-scheme', content: 'dark' },
+        // ... and stop the Dark Reader extension from re-theming it (it darkens the moon and light accents).
+        { name: 'darkreader-lock', content: 'true' }
+      ],
       link: [
         { rel: 'icon', type: 'image/x-icon', href: `${baseURL}favicon.ico` },
         { rel: 'alternate', type: 'application/rss+xml', title: 'Lunar Linux News', href: `${baseURL}rss.xml` }
