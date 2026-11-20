@@ -97,7 +97,7 @@ Remove the installation media when prompted.
 After rebooting into your new system:
 
 1. Log in with your user account
-2. Update the system: `lin update`
+2. Update the system: `lunar update`
 3. Install additional software as needed
 
 ## Troubleshooting

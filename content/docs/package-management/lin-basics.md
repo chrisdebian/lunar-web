@@ -1,133 +1,133 @@
 ---
 title: "Lin Basics"
-description: "Essential commands and concepts for Lunar's package manager"
+description: "The everyday commands for installing, finding, updating and removing software on Lunar"
 category: "package-management"
 order: 2
-lastUpdated: 2025-11-02
-tags: [package-management, lin, commands]
+lastUpdated: 2026-11-21
+tags: [package-management, lin, lvu, lrm, lunar, commands]
 ---
 
-Learn the essential commands for managing packages with Lunar's `lin` tool.
+Software on Lunar comes as **modules**: build recipes in the moonbase that are compiled from source on
+your machine. Four commands cover everyday use:
 
-## What is Lin?
+| Command | What it does |
+| --- | --- |
+| `lin` | Downloads, compiles and installs modules |
+| `lrm` | Removes installed modules |
+| `lvu` | Shows information: searching, descriptions, what's installed, logs, dependencies |
+| `lunar` | Updates the system, holds modules, optimization settings; run it alone for a menu |
 
-Lin is Lunar Linux's package management tool. It handles:
-- Installing packages from source
-- Updating packages
-- Managing dependencies
-- Optimizing builds for your system
+## Find software
 
-## Basic Commands
-
-### Search for Packages
-
-Search for available packages:
+Search the module descriptions for a phrase:
 
 ```bash
-lin search package-name
+lvu search "web browser"
 ```
 
-Example:
-```bash
-lin search firefox
-```
-
-### Install Packages
-
-Install a package:
+Search module names for a keyword (shows each match with its section):
 
 ```bash
-lin install package-name
+lvu apropos firefox
 ```
 
-Example:
-```bash
-lin install vim
-```
-
-### Update System
-
-Update all installed packages:
+Read about a module before installing it:
 
 ```bash
-lin update
+lvu what firefox      # full description
+lvu info firefox      # short summary
+lvu version firefox   # version in the moonbase
+lvu website firefox   # upstream website
 ```
 
-### Remove Packages
+## Install software
 
-Remove an installed package:
+Give `lin` one or more module names:
 
 ```bash
-lin remove package-name
+lin nano
+lin nano hdparm sudo
 ```
 
-### List Installed Packages
+`lin` downloads the sources, asks about optional dependencies, resolves and builds dependencies, then
+compiles and installs each module.
 
-See all installed packages:
+Useful options:
 
 ```bash
-lin list
+lin -r firefox   # reconfigure: choose the optional dependencies again
+lin -c nano      # compile again even if a cached build exists
+lin -p nano      # only install if it isn't installed already
 ```
 
-## Package Information
-
-Get detailed information about a package:
+## See what's installed
 
 ```bash
-lin info package-name
+lvu installed          # every installed module and its version
+lvu installed nano     # the installed version of one module
+lvu expired            # installed modules with a newer version in the moonbase
 ```
 
-This shows:
-- Description
-- Version
-- Dependencies
-- Build options
-
-## Build Optimization
-
-Lin compiles packages optimized for your system.
-
-### Compiler Flags
-
-View current compiler flags:
+## Update the system
 
 ```bash
-lin flags
+lunar update
 ```
 
-### CPU Optimization
+This fetches the latest moonbase, then rebuilds every installed module that has a newer version.
+To rebuild outdated modules without fetching a new moonbase, use `lunar renew`.
 
-Lin automatically detects and uses optimal CPU flags for your processor.
+## Remove software
+
+```bash
+lrm nano
+```
+
+Options:
+
+```bash
+lrm -k nano            # remove, but keep its configuration and dependencies
+lrm -D nano 8.2        # downgrade to a version still in the install cache
+```
+
+Some modules, such as `bash` and `gcc`, are protected from removal because the system needs them.
+
+## Hold a module at its current version
+
+A held module is skipped by `lunar update`:
+
+```bash
+lunar hold firefox
+lunar unhold firefox
+lvu held               # list held modules
+```
 
 ## Dependencies
 
-Lin automatically handles dependencies:
-
 ```bash
-lin install package-name
+lvu tree firefox       # what firefox depends on
+lvu depends openssl    # installed modules that depend on openssl
+lvu leafs              # installed modules nothing else depends on
 ```
 
-This installs the package and all required dependencies.
-
-## Advanced Usage
-
-### Hold Packages
-
-Prevent a package from being updated:
+## Logs
 
 ```bash
-lin hold package-name
+lvu compile nano       # the compile log
+lvu install nano       # the list of installed files
+lvu from /usr/bin/nano # which module installed a file
 ```
 
-### Unhold Packages
+## Build optimization
 
-Allow updates again:
+`lin` compiles with your system's optimization settings (CPU type, compiler flags). Change them in
+the menu:
 
 ```bash
-lin unhold package-name
+lunar optimize
 ```
 
-## Next Steps
+## Next steps
 
-- Explore advanced package management techniques
-- Learn about managing system services
+- [Moonbase](/docs/package-management/moonbase): how modules are organized
+- Run `lin --help`, `lvu --help`, `lrm --help` or `lunar --help` for every option
