@@ -35,20 +35,54 @@
           Ways to help
         </h3>
         <!-- A small constellation: each way to help is a star, joined like a star chart -->
-        <div class="constellation relative mt-6 h-80">
+        <div
+          ref="constellation"
+          class="constellation relative mt-6 h-80"
+          :class="`is-${drawState}`"
+        >
           <svg
             class="pointer-events-none absolute inset-0 h-full w-full overflow-visible"
             viewBox="0 0 100 100"
             preserveAspectRatio="none"
             aria-hidden="true"
           >
+            <!--
+              Each dotted line is revealed by a solid "pen stroke" mask drawn from star to star.
+              The pen deliberately has no non-scaling-stroke: combined with pathLength, browsers
+              then compute the dash in screen pixels and the pen repeats along the line.
+            -->
+            <defs>
+              <mask
+                v-for="(line, index) in lines"
+                :id="maskId(index)"
+                :key="index"
+                maskUnits="userSpaceOnUse"
+                x="-5"
+                y="-5"
+                width="110"
+                height="110"
+              >
+                <line
+                  class="pen"
+                  :style="{ '--delay': `${line.delay}s` }"
+                  :x1="line.x1"
+                  :y1="line.y1"
+                  :x2="line.x2"
+                  :y2="line.y2"
+                  pathLength="1"
+                  stroke="white"
+                  stroke-width="4"
+                />
+              </mask>
+            </defs>
             <line
-              v-for="([from, to], index) in constellationLines"
+              v-for="(line, index) in lines"
               :key="index"
-              :x1="helpLinks[from]!.x"
-              :y1="helpLinks[from]!.y"
-              :x2="helpLinks[to]!.x"
-              :y2="helpLinks[to]!.y"
+              :x1="line.x1"
+              :y1="line.y1"
+              :x2="line.x2"
+              :y2="line.y2"
+              :mask="`url(#${maskId(index)})`"
               stroke="#A5B4FC"
               stroke-opacity="0.25"
               stroke-width="1"
@@ -58,6 +92,8 @@
             <circle
               v-for="(dust, index) in stardust"
               :key="`dust-${index}`"
+              class="dust"
+              :style="{ '--delay': `${index * 0.12}s` }"
               :cx="dust.x"
               :cy="dust.y"
               r="0.45"
@@ -68,10 +104,10 @@
 
           <ul>
             <li
-              v-for="link in helpLinks"
+              v-for="(link, index) in helpLinks"
               :key="link.text"
               class="absolute"
-              :style="{ left: `${link.x}%`, top: `${link.y}%` }"
+              :style="{ 'left': `${link.x}%`, 'top': `${link.y}%`, '--delay': `${index * STEP}s` }"
             >
               <component
                 :is="link.href.startsWith('/') ? NuxtLink : 'a'"
@@ -108,8 +144,46 @@ const helpLinks: HelpLink[] = [
   { text: 'Follow Lunar on social media', href: '#', x: 46, y: 92 }
 ]
 
-// Which stars are joined (indexes into helpLinks).
+// Which stars are joined (indexes into helpLinks), in drawing order.
 const constellationLines: Array<[number, number]> = [[0, 1], [1, 2], [2, 3], [0, 2]]
+
+/*
+ * Draw-in, once, when the constellation first scrolls into view: star 1 lights up, a line draws to
+ * star 2, star 2 lights up, … and the last line closes the shape. Server-rendered and no-JS pages
+ * (and reduced motion) show the finished constellation; the hidden "pending" state is client-only.
+ */
+const STEP = 0.45 // seconds between stars; each line takes the time between its two stars
+const lines = constellationLines.map(([from, to], index) => ({
+  x1: helpLinks[from]!.x,
+  y1: helpLinks[from]!.y,
+  x2: helpLinks[to]!.x,
+  y2: helpLinks[to]!.y,
+  delay: 0.1 + index * STEP
+}))
+
+const uid = useId()
+const maskId = (index: number) => `constellation-${uid}-${index}`
+
+type DrawState = 'idle' | 'pending' | 'drawing'
+const drawState = ref<DrawState>('idle')
+const constellation = ref<HTMLElement>()
+let observer: IntersectionObserver | undefined
+
+onMounted(() => {
+  if (!constellation.value || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+  drawState.value = 'pending'
+  observer = new IntersectionObserver(([entry]) => {
+    if (!entry?.isIntersecting) return
+    observer?.disconnect()
+    // Next frame, so the hidden state has been painted before the transitions start.
+    requestAnimationFrame(() => {
+      drawState.value = 'drawing'
+    })
+  }, { threshold: 0.4 })
+  observer.observe(constellation.value)
+})
+
+onBeforeUnmount(() => observer?.disconnect())
 
 // A few faint unlabeled stars to fill the sky.
 const stardust = [
@@ -119,6 +193,37 @@ const stardust = [
 </script>
 
 <style scoped>
+/* Draw-in: "pending" hides everything instantly; "drawing" transitions it in, staggered by --delay. */
+.constellation.is-pending .pen {
+  stroke-dasharray: 1 1;
+  stroke-dashoffset: 1;
+}
+
+.constellation.is-drawing .pen {
+  stroke-dasharray: 1 1;
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 0.45s ease-in-out var(--delay);
+}
+
+.constellation.is-pending .star {
+  opacity: 0;
+  scale: 0.6;
+}
+
+.constellation.is-drawing .star {
+  transition:
+    opacity 0.5s ease var(--delay),
+    scale 0.6s cubic-bezier(0.3, 1.6, 0.5, 1) var(--delay);
+}
+
+.constellation.is-pending .dust {
+  opacity: 0;
+}
+
+.constellation.is-drawing .dust {
+  transition: opacity 0.8s ease var(--delay);
+}
+
 .star {
   position: absolute;
   top: 0;
