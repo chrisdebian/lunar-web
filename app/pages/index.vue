@@ -1,6 +1,7 @@
 <template>
   <div>
     <HeroSection />
+    <FeaturesSection />
     <NewsSection />
     <DownloadsSection />
     <DocumentationSection />
