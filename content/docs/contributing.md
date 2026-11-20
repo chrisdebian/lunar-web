@@ -7,7 +7,7 @@ Thank you for your interest in improving Lunar Linux documentation!
 
 ## How to Contribute
 
-1. Fork the [Lunar Linux website repository](https://github.com/lunar-linux/lunar-www)
+1. Fork the [Lunar Linux website repository](https://github.com/lunar-linux/lunar-web)
 2. Create a new branch for your changes
 3. Make your documentation changes
 4. Submit a pull request
