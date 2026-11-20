@@ -135,7 +135,7 @@ const current = computed(() => features[active.value]!)
 
 /*
  * Picking a feature types its command out, like a real terminal (only in response to a click or
- * key press; the first command is simply shown). Total time stays under half a second.
+ * key press; the first command is simply shown). Total time stays under a second.
  */
 const typed = ref(features[0]!.command)
 let typingTimer: ReturnType<typeof setInterval> | undefined
@@ -147,7 +147,8 @@ watch(active, () => {
     typed.value = command
     return
   }
-  const interval = Math.min(35, 420 / command.length)
+  // ~55 ms per character, but never more than ~0.9 s for a long command.
+  const interval = Math.min(55, 900 / command.length)
   typed.value = ''
   typingTimer = setInterval(() => {
     typed.value = command.slice(0, typed.value.length + 1)
