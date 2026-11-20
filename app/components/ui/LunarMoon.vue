@@ -102,6 +102,16 @@
         <feGaussianBlur stdDeviation="9" />
       </filter>
 
+      <filter
+        :id="id('glow')"
+        x="-20%"
+        y="-20%"
+        width="140%"
+        height="140%"
+      >
+        <feGaussianBlur stdDeviation="10" />
+      </filter>
+
       <filter :id="id('grain')">
         <feTurbulence
           type="fractalNoise"
@@ -199,16 +209,31 @@
           :r="crater.r"
           :fill="`url(#${id('crater')})`"
         />
+        <!-- Optional one-off highlight running along the lit limb, top to bottom -->
+        <circle
+          v-if="glint"
+          class="moon-glint"
+          :cx="C"
+          :cy="C"
+          :r="R - 6"
+          fill="none"
+          stroke="#F5F7FF"
+          stroke-width="28"
+          stroke-linecap="round"
+          :filter="`url(#${id('glow')})`"
+        />
       </g>
     </g>
   </svg>
 </template>
 
 <script setup lang="ts">
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   /** Position in the lunar cycle, 0–1 (0 = new moon, 0.5 = full moon). */
   phase: number
-}>()
+  /** Play a one-off highlight along the lit edge when mounted. */
+  glint?: boolean
+}>(), { glint: false })
 
 const C = 500 // centre
 const R = 400 // radius
@@ -265,3 +290,40 @@ const craters = [
   { x: 600, y: 240, r: 11 }
 ]
 </script>
+
+<style scoped>
+/*
+ * The glint is a short dash on a circle. SVG circles start at 3 o'clock and run clockwise
+ * (circumference 2π·394 ≈ 2476): 12 o'clock is at ~1857, 6 o'clock at ~619. Moving the dash
+ * backwards along the path sweeps it over the left (lit) limb from top to bottom.
+ */
+.moon-glint {
+  stroke-dasharray: 360 2116;
+  stroke-dashoffset: -1857;
+  opacity: 0;
+  animation: moon-glint 1.1s cubic-bezier(0.45, 0, 0.2, 1) 0.9s forwards;
+}
+
+@keyframes moon-glint {
+  0% {
+    stroke-dashoffset: -1857;
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: -259;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .moon-glint {
+    display: none;
+  }
+}
+</style>
