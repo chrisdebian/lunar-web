@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   verify:
-    name: Lint, build and check links
+    name: Lint, test, build and check links
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -32,6 +32,9 @@ jobs:
 
       - name: Typecheck
         run: yarn typecheck
+
+      - name: Unit tests
+        run: yarn test
 
       - name: Check content
         run: yarn check-content
@@ -53,6 +56,17 @@ jobs:
         env:
           NUXT_APP_BASE_URL: /${{ github.event.repository.name }}/
           NUXT_PUBLIC_SITE_URL: https://example.org/${{ github.event.repository.name }}/
+
+  workflows:
+    name: Lint workflows
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: actionlint
+        uses: docker://rhysd/actionlint@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667 # 1.7.12
+        with:
+          args: -color
 
   docker:
     name: Docker image
