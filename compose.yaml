@@ -1,4 +1,6 @@
-# docker compose up --build   → http://localhost:8080/
+# docker compose up --build web    → the static site served by nginx at http://localhost:8080/
+# docker compose up dev            → the dev server with hot reload at http://localhost:3000/
+# docker compose run --rm dev yarn verify    (or any other yarn command, without Node installed)
 services:
   web:
     build:
@@ -10,3 +12,31 @@ services:
     ports:
       - "${PORT:-8080}:80"
     restart: unless-stopped
+
+  # Runs from your checkout, so edits show up immediately. Only started when named.
+  dev:
+    profiles: [dev]
+    image: node:24-alpine
+    working_dir: /app
+    # Install (fast when nothing changed), then run the command.
+    entrypoint: ["sh", "-c", "yarn install --frozen-lockfile && exec \"$$@\"", "--"]
+    command: ["yarn", "dev", "--host", "0.0.0.0", "--port", "3000"]
+    environment:
+      NUXT_TELEMETRY_DISABLED: 1
+    ports:
+      - "${DEV_PORT:-3000}:3000"
+    volumes:
+      - .:/app
+      # Linux builds of the dependencies and generated files stay in volumes, apart from any
+      # node_modules/.nuxt on the host (which may be for macOS or Windows). `yarn generate`
+      # writes .output/ into the checkout, as it would without Docker.
+      - node_modules:/app/node_modules
+      - nuxt:/app/.nuxt
+      - data:/app/.data
+      - yarn-cache:/usr/local/share/.cache/yarn
+
+volumes:
+  node_modules:
+  nuxt:
+  data:
+  yarn-cache:

@@ -89,7 +89,7 @@ jobs:
       - name: Smoke test
         run: |
           docker run -d --name web -p 8080:80 lunar-www:ci
-          for i in $(seq 1 20); do curl -fs http://localhost:8080/ >/dev/null && break; sleep 1; done
+          for _ in $(seq 1 20); do curl -fs http://localhost:8080/ >/dev/null && break; sleep 1; done
           for path in / /news /docs /docs/faq /rss.xml /sitemap.xml /search.json; do
             curl -fsS -o /dev/null "http://localhost:8080$path" || { echo "::error::$path failed"; exit 1; }
           done

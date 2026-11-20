@@ -1,5 +1,8 @@
-# Deploys a preview of the site to GitHub Pages on every push to main.
-# One-time setup: Settings → Pages → Build and deployment → Source: "GitHub Actions".
+# Publishes a preview of main to the root of the GitHub Pages site on every push to main.
+# PR previews (pr-preview.yml) live in pr-preview/ on the same gh-pages branch and are left alone.
+#
+# One-time setup: Settings → Pages → Build and deployment → Source: "Deploy from a branch",
+# branch gh-pages, / (root). The branch is created by the first run of this workflow.
 name: Deploy preview to GitHub Pages
 
 on:
@@ -8,54 +11,31 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write # push to gh-pages
+  pages: read # look up the Pages URL
 
 concurrency:
   group: pages
   cancel-in-progress: false
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v5
+      - name: Build
+        uses: ./.github/actions/build-site
+
+      # Pages runs Jekyll on branch deploys, which would drop _nuxt/ and __nuxt_content/.
+      - run: touch .output/public/.nojekyll
+
+      - name: Publish to gh-pages
+        uses: JamesIves/github-pages-deploy-action@v4
         with:
-          node-version-file: .nvmrc
-          cache: yarn
-
-      - id: pages
-        uses: actions/configure-pages@v5
-
-      - run: yarn install --frozen-lockfile
-
-      # base_path is e.g. "/lunar-www" (or empty with a custom domain); base_url is the full Pages URL.
-      - name: Generate
-        run: yarn generate
-        env:
-          NUXT_APP_BASE_URL: ${{ steps.pages.outputs.base_path }}/
-          NUXT_PUBLIC_SITE_URL: ${{ steps.pages.outputs.base_url }}/
-          NUXT_PUBLIC_INDEXABLE: 'false'
-
-      - name: Check links
-        run: yarn check-links
-        env:
-          NUXT_APP_BASE_URL: ${{ steps.pages.outputs.base_path }}/
-          NUXT_PUBLIC_SITE_URL: ${{ steps.pages.outputs.base_url }}/
-
-      - uses: actions/upload-pages-artifact@v4
-        with:
-          path: .output/public
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+          branch: gh-pages
+          folder: .output/public
+          # Keep the PR previews, and rebase instead of force-pushing over them.
+          clean-exclude: pr-preview/
+          force: false
+          commit-message: Deploy main ${{ github.sha }}

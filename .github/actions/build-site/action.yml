@@ -1,0 +1,72 @@
+# Builds the static site for the repository's GitHub Pages site and checks every link in it.
+# Shared by pages.yml (main) and pr-preview.yml (pull requests). Expects the repo to be checked out
+# and the job to have `pages: read` permission.
+name: Build site for GitHub Pages
+description: Generate the static site for a folder of the GitHub Pages site and check its links.
+
+inputs:
+  folder:
+    description: Folder of the Pages site the build will be served from, e.g. "pr-preview/pr-12". Empty for the root.
+    required: false
+    default: ''
+
+outputs:
+  pages-url:
+    description: URL of the Pages site root, e.g. https://owner.github.io/repo/
+    value: ${{ steps.urls.outputs.pages-url }}
+  pages-host-path:
+    description: The Pages site root without scheme or trailing slash, e.g. owner.github.io/repo
+    value: ${{ steps.urls.outputs.pages-host-path }}
+  site-url:
+    description: URL this build is served from, e.g. https://owner.github.io/repo/pr-preview/pr-12/
+    value: ${{ steps.urls.outputs.site-url }}
+
+runs:
+  using: composite
+  steps:
+    - name: Work out the URLs
+      id: urls
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        FOLDER: ${{ inputs.folder }}
+      run: |
+        # The Pages API knows about custom domains; before Pages is enabled, assume the default URL.
+        pages_url=$(gh api "repos/$GITHUB_REPOSITORY/pages" --jq .html_url 2>/dev/null) \
+          || pages_url="https://${GITHUB_REPOSITORY_OWNER,,}.github.io/${GITHUB_REPOSITORY#*/}/"
+        pages_url="${pages_url%/}/"
+        site_url="$pages_url${FOLDER:+${FOLDER%/}/}"
+        # https://owner.github.io/repo/pr-preview/pr-12/ → /repo/pr-preview/pr-12/
+        base_path="/${site_url#*://*/}"
+        {
+          echo "pages-url=$pages_url"
+          host_path="${pages_url#*://}"
+          echo "pages-host-path=${host_path%/}"
+          echo "site-url=$site_url"
+          echo "base-path=$base_path"
+        } >> "$GITHUB_OUTPUT"
+        echo "Building for $site_url (base path $base_path)"
+
+    - uses: actions/setup-node@v5
+      with:
+        node-version-file: .nvmrc
+        cache: yarn
+
+    - name: Install dependencies
+      shell: bash
+      run: yarn install --frozen-lockfile
+
+    - name: Generate
+      shell: bash
+      run: yarn generate
+      env:
+        NUXT_APP_BASE_URL: ${{ steps.urls.outputs.base-path }}
+        NUXT_PUBLIC_SITE_URL: ${{ steps.urls.outputs.site-url }}
+        NUXT_PUBLIC_INDEXABLE: 'false'
+
+    - name: Check links
+      shell: bash
+      run: yarn check-links
+      env:
+        NUXT_APP_BASE_URL: ${{ steps.urls.outputs.base-path }}
+        NUXT_PUBLIC_SITE_URL: ${{ steps.urls.outputs.site-url }}

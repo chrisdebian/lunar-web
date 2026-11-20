@@ -11,7 +11,7 @@ distribution. It is a fully static site built with [Nuxt 4](https://nuxt.com/),
 
 - Node.js 24 LTS (22.22+ also works); the version is pinned in `.nvmrc` and `.tool-versions`
 - Yarn 1 (`corepack enable` or `npm i -g yarn`)
-- Docker (optional)
+- Or only Docker: see [Develop with Docker](#develop-with-docker)
 
 ## Develop locally
 
@@ -19,6 +19,20 @@ distribution. It is a fully static site built with [Nuxt 4](https://nuxt.com/),
 yarn install
 yarn dev          # http://localhost:3000, with hot reload
 ```
+
+### Develop with Docker
+
+No Node or Yarn needed. Your checkout is mounted into a Node container, so edits reload just
+the same:
+
+```bash
+docker compose up dev                     # http://localhost:3000, with hot reload
+docker compose run --rm dev yarn verify   # any yarn command: lint, generate, check-links, …
+```
+
+The first start installs the dependencies (about half a minute); later starts are quick. They are
+kept in Docker volumes, apart from any `node_modules` on your machine. Use another port with
+`DEV_PORT=3001 docker compose up dev`; start from scratch with `docker compose down -v`.
 
 ## Build the static site
 
@@ -44,7 +58,7 @@ NUXT_APP_BASE_URL=/lunar/ NUXT_PUBLIC_SITE_URL=https://example.org/lunar/ yarn g
 The image builds the static site and serves it with nginx.
 
 ```bash
-docker compose up --build      # http://localhost:8080
+docker compose up --build web  # http://localhost:8080
 ```
 
 Or without Compose:
@@ -81,8 +95,20 @@ The build itself also fails if any page links to a page that doesn't exist.
 - `.github/workflows/ci.yml` runs on every push and pull request: lint, typecheck, content check,
   root and sub-path builds with link checks, an informational external-link check, and a Docker
   build with smoke tests.
-- `.github/workflows/pages.yml` deploys a preview to GitHub Pages on every push to `main`. One-time
-  setup: *Settings → Pages → Source: GitHub Actions*. Previews are marked `noindex`.
+- `.github/workflows/pages.yml` publishes `main` to the root of the GitHub Pages site on every push,
+  e.g. `https://<owner>.github.io/<repo>/`.
+- `.github/workflows/pr-preview.yml` publishes every pull request to
+  `https://<owner>.github.io/<repo>/pr-preview/pr-<number>/` and comments the link (and a QR code,
+  handy for testing on a phone) on the PR. It updates on every push and is removed when the PR is
+  closed or merged. PRs from forks get no preview: GitHub gives them a read-only token.
+
+Both build with `.github/actions/build-site` and push to the `gh-pages` branch. Everything published
+there is marked `noindex`.
+
+One-time setup, after the first push to `main` has created the `gh-pages` branch:
+*Settings → Pages → Build and deployment → Source: Deploy from a branch*, branch `gh-pages`, folder
+`/ (root)`. If the organization limits workflow permissions, allow *Read and write permissions* under
+*Settings → Actions → General*.
 
 ## Project layout
 
