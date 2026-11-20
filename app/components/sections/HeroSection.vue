@@ -29,11 +29,9 @@
       <div class="hero-moon absolute">
         <div class="hero-moon-set">
           <div class="hero-moon-rise">
-            <!-- Rendered after load so the intro always starts from its first frame -->
             <LunarMoon
-              v-if="phase !== null"
-              :phase="phase"
-              :glint="intro === 'glint'"
+              :key="intro"
+              :intro="intro"
               class="h-full w-full"
             />
           </div>
@@ -73,9 +71,6 @@
 </template>
 
 <script setup lang="ts">
-// The waning crescent from the original design (lit on the left, ~27% of the disc).
-const CRESCENT_PHASE = 0.83
-
 // TEMPORARY (intro comparison): /?intro=light (default) | glint | none
 type Intro = 'light' | 'glint' | 'none'
 const route = useRoute()
@@ -83,42 +78,6 @@ const intro = computed<Intro>(() => {
   const value = String(route.query.intro)
   return value === 'glint' || value === 'none' ? value : 'light'
 })
-
-const phase = ref<number | null>(null)
-let frame = 0
-
-/** "First light": the crescent grows from a new moon to its final shape. */
-const playFirstLight = () => {
-  const from = 0.999 // just before new moon: unlit
-  const delay = 350 // let the dark disc rise first
-  const duration = 1100
-  const easeOutCubic = (t: number) => 1 - (1 - t) ** 3
-  let start: number | undefined
-
-  phase.value = from
-  const step = (now: number) => {
-    start ??= now + delay
-    const t = Math.min(Math.max((now - start) / duration, 0), 1)
-    phase.value = from + (CRESCENT_PHASE - from) * easeOutCubic(t)
-    if (t < 1) frame = requestAnimationFrame(step)
-  }
-  frame = requestAnimationFrame(step)
-}
-
-const showMoon = () => {
-  cancelAnimationFrame(frame)
-  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  if (intro.value === 'light' && !reduceMotion) playFirstLight()
-  else phase.value = CRESCENT_PHASE
-}
-
-onMounted(showMoon)
-watch(intro, () => {
-  // Remount the moon so the CSS rise/glint animations replay too.
-  phase.value = null
-  nextTick(showMoon)
-})
-onBeforeUnmount(() => cancelAnimationFrame(frame))
 
 type Star = { x: number, y: number, r: number, o: number }
 
@@ -145,7 +104,7 @@ const stars: Star[] = Array.from({ length: 140 }, () => {
 
 <style scoped>
 .hero-sky {
-  mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, black 12%, black 60%, transparent 100%);
 }
 
 .hero-moon {
