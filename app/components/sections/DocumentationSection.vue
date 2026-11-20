@@ -1,55 +1,77 @@
 <template>
   <section
     id="docs"
-    class="bg-gray-900/50 px-4 py-16"
+    class="px-6 py-24"
+    aria-labelledby="docs-title"
   >
-    <div class="container mx-auto">
-      <h2 class="mb-12 text-center text-3xl font-bold">
-        Documentation
-      </h2>
-      <div class="mx-auto grid max-w-5xl gap-6 md:grid-cols-3">
-        <DocCard
-          v-for="doc in docs"
-          :key="doc.title"
-          :title="doc.title"
-          :description="doc.description"
-          :to="doc.to"
-        />
-      </div>
-      <div class="mt-10 text-center">
-        <NuxtLink
-          to="/docs"
-          class="inline-block rounded-lg bg-indigo-600 px-6 py-3 font-medium transition-colors hover:bg-indigo-700"
+    <div class="container mx-auto max-w-6xl">
+      <div class="flex flex-wrap items-end justify-between gap-6">
+        <div>
+          <h2
+            id="docs-title"
+            class="text-3xl font-bold tracking-[-0.03em] text-white sm:text-4xl"
+          >
+            Documentation
+          </h2>
+          <p class="mt-4 max-w-xl text-gray-400">
+            Installation, package management and development guides, written by the community.
+          </p>
+        </div>
+
+        <!-- Looks like a field, opens the search dialog -->
+        <button
+          type="button"
+          class="flex w-full items-center gap-3 rounded-lg border border-white/15 bg-gray-950/60 px-4 py-3 text-left text-gray-400 transition-colors hover:border-white/30 hover:text-gray-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-300 sm:w-80"
+          @click="openSearch"
         >
-          View full documentation
-        </NuxtLink>
+          <Icon
+            name="ph:magnifying-glass"
+            class="h-5 w-5 shrink-0"
+          />
+          <span class="flex-1">Search the docs</span>
+          <kbd class="hidden rounded-sm border border-gray-700 bg-gray-800 px-2 py-0.5 text-xs text-gray-500 sm:inline-block">{{ shortcutLabel }}</kbd>
+        </button>
       </div>
+
+      <ul class="mt-12 grid border-t border-white/10 md:grid-cols-2 md:gap-x-12 lg:grid-cols-3">
+        <li
+          v-for="section in sections"
+          :key="section.path"
+          class="border-b border-white/10"
+        >
+          <NuxtLink
+            :to="section.path"
+            class="group block py-5"
+          >
+            <span class="block font-semibold text-white transition-colors group-hover:text-indigo-200">{{ section.title }}</span>
+            <span class="mt-1 block text-sm text-gray-400">{{ section.description }}</span>
+          </NuxtLink>
+        </li>
+      </ul>
+
+      <NuxtLink
+        to="/docs"
+        class="mt-8 inline-block font-medium text-indigo-300 transition-colors hover:text-white"
+      >
+        Browse all documentation
+      </NuxtLink>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
-type DocItem = {
-  title: string
-  description: string
-  to: string
-}
+const { open: openSearch } = useSearchDialog()
+const shortcutLabel = ref('Ctrl K')
 
-const docs: DocItem[] = [
-  {
-    title: 'Getting Started',
-    description: 'Everything you need to know for a fresh installation of Lunar Linux.',
-    to: '/docs/installation'
-  },
-  {
-    title: 'Package Management',
-    description: 'Learn how to install, update, and manage packages in Lunar Linux.',
-    to: '/docs/package-management'
-  },
-  {
-    title: 'System Configuration',
-    description: 'Detailed guides on configuring your system for optimal performance.',
-    to: '/docs/system-administration'
-  }
-]
+onMounted(() => {
+  if (/Mac|iPhone|iPad/.test(navigator.platform)) shortcutLabel.value = '⌘K'
+})
+
+// The docs' top-level sections, in sidebar order.
+const { data: sections } = await useAsyncData('home-docs-sections', async () => {
+  const docs = await queryCollection('docs').select('title', 'description', 'path', 'order').all()
+  return docs
+    .filter(doc => doc.path.split('/').length === 3)
+    .sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity) || a.title.localeCompare(b.title))
+}, { default: () => [] })
 </script>

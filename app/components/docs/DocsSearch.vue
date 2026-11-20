@@ -6,7 +6,7 @@
         ? 'flex h-10 w-10 items-center justify-center rounded-lg text-gray-300 transition-colors hover:bg-gray-900 hover:text-white'
         : 'flex items-center gap-2 rounded-lg border border-gray-800 bg-gray-900/50 px-4 py-2 text-sm text-gray-400 transition-colors hover:border-gray-700 hover:bg-gray-900'"
       aria-label="Search documentation"
-      @click="open"
+      @click="openDialog"
     >
       <Icon
         name="ph:magnifying-glass"
@@ -20,7 +20,11 @@
       </template>
     </button>
 
-    <Teleport to="body">
+    <!-- The dialog is rendered once, by the full instance; compact instances only open it. -->
+    <Teleport
+      v-if="!compact"
+      to="body"
+    >
       <Transition
         enter-active-class="transition duration-200 ease-out"
         enter-from-class="opacity-0"
@@ -157,27 +161,31 @@ const route = useRoute()
 
 const query = ref('')
 const results = ref<SearchResult[]>([])
-const isOpen = ref(false)
+const { isOpen, open: openDialog, close: closeDialog } = useSearchDialog()
 const searchInput = ref<HTMLInputElement>()
 const shortcutLabel = ref('Ctrl K')
 const activeIndex = ref(0)
 const listbox = ref<HTMLUListElement>()
 
-// Two instances live in the header (desktop + compact), so ids must be unique.
+// Ids only need to be unique per dialog, but useId keeps them stable between server and client.
 const uid = useId()
 const listboxId = `docs-search-${uid}-results`
 const optionId = (index: number) => `docs-search-${uid}-result-${index}`
 
-const open = () => {
-  isOpen.value = true
-  initializeSearch()
-  nextTick(() => searchInput.value?.focus())
-}
+const close = closeDialog
 
-const close = () => {
-  isOpen.value = false
-  query.value = ''
-  results.value = []
+// Only the full instance owns the dialog: load the index and focus the field when it opens,
+// reset when it closes (whoever opened or closed it).
+if (!props.compact) {
+  watch(isOpen, (open) => {
+    if (open) {
+      initializeSearch()
+      nextTick(() => searchInput.value?.focus())
+    } else {
+      query.value = ''
+      results.value = []
+    }
+  })
 }
 
 const openResult = (index: number) => {
@@ -224,14 +232,13 @@ watch(query, runSearch)
 watch(isIndexing, (indexing) => {
   if (!indexing) runSearch()
 })
-watch(() => route.fullPath, close)
+if (!props.compact) watch(() => route.fullPath, close)
 
 const onKeydown = (event: KeyboardEvent) => {
-  // The header also renders a compact instance for mobile; only the full one owns the shortcut.
-  if (!props.compact && (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+  if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
     event.preventDefault()
     if (isOpen.value) close()
-    else open()
+    else openDialog()
   } else if (event.key === 'Escape' && isOpen.value) {
     close()
   }
@@ -239,7 +246,8 @@ const onKeydown = (event: KeyboardEvent) => {
 
 onMounted(() => {
   if (/Mac|iPhone|iPad/.test(navigator.platform)) shortcutLabel.value = '⌘K'
-  window.addEventListener('keydown', onKeydown)
+  // The header also renders a compact instance for mobile; only the full one owns the shortcuts.
+  if (!props.compact) window.addEventListener('keydown', onKeydown)
 })
 
 onBeforeUnmount(() => {

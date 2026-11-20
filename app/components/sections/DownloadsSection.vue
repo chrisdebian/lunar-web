@@ -1,90 +1,125 @@
 <template>
   <section
     id="downloads"
-    class="py-16 px-4"
+    class="px-6 py-24"
+    aria-labelledby="downloads-title"
   >
-    <div class="container mx-auto">
-      <h2 class="text-3xl font-bold text-center mb-12">
+    <div class="container mx-auto max-w-6xl">
+      <h2
+        id="downloads-title"
+        class="text-3xl font-bold tracking-[-0.03em] text-white sm:text-4xl"
+      >
         Get Lunar Linux
       </h2>
-      <div class="max-w-4xl mx-auto bg-gray-800/30 rounded-lg p-8 border border-gray-700">
-        <div class="grid md:grid-cols-2 gap-8">
-          <div>
-            <h3 class="text-xl font-semibold mb-4">
-              Latest Stable Release
-            </h3>
-            <p class="mb-6 text-gray-300">
-              Installation ISO images and verification
-            </p>
-            <ul class="space-y-3">
-              <IconLink
-                v-for="link in stableLinks"
-                :key="link.text"
-                :icon="link.icon"
-                :text="link.text"
-                :href="link.href"
-              />
-            </ul>
+      <p class="mt-4 max-w-xl text-gray-400">
+        From the ISO to your first compiled package in three steps.
+      </p>
+
+      <!-- A real sequence, so the steps are numbered -->
+      <ol class="mt-12 grid gap-10 border-t border-white/10 pt-10 md:grid-cols-3 md:gap-8">
+        <li class="flex flex-col">
+          <span
+            class="step-number"
+            aria-hidden="true"
+          >1</span>
+          <h3 class="mt-4 text-lg font-semibold text-white">
+            Download the ISO
+          </h3>
+          <p class="mt-2 text-gray-400">
+            A bootable installer image for 64-bit PCs.
+          </p>
+          <div class="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3">
+            <!-- TODO: real ISO and checksum locations -->
+            <a
+              href="#"
+              class="rounded-lg bg-indigo-600 px-5 py-2.5 font-medium text-white shadow-lg shadow-indigo-950/50 transition-colors hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-300"
+            >
+              Download ISO (x86_64)
+            </a>
+            <a
+              href="#"
+              class="text-sm text-indigo-300 transition-colors hover:text-white"
+            >
+              Verify the checksum
+            </a>
           </div>
-          <div>
-            <h3 class="text-xl font-semibold mb-4">
-              Development Version
-            </h3>
-            <p class="mb-6 text-gray-300">
-              For testing and contributing
-            </p>
-            <ul class="space-y-3">
-              <IconLink
-                v-for="link in devLinks"
-                :key="link.text"
-                :icon="link.icon"
-                :text="link.text"
-                :href="link.href"
-              />
-            </ul>
-          </div>
-        </div>
+        </li>
+
+        <li class="flex flex-col">
+          <span
+            class="step-number"
+            aria-hidden="true"
+          >2</span>
+          <h3 class="mt-4 text-lg font-semibold text-white">
+            Install
+          </h3>
+          <p class="mt-2 text-gray-400">
+            Boot the ISO and let the installer set up disks, a kernel and a minimal base system.
+          </p>
+          <NuxtLink
+            to="/docs/installation/installation-guide"
+            class="mt-6 text-sm font-medium text-indigo-300 transition-colors hover:text-white"
+          >
+            Read the installation guide
+          </NuxtLink>
+        </li>
+
+        <li class="flex flex-col">
+          <span
+            class="step-number"
+            aria-hidden="true"
+          >3</span>
+          <h3 class="mt-4 text-lg font-semibold text-white">
+            Build your first package
+          </h3>
+          <p class="mt-2 text-gray-400">
+            lin downloads the source, resolves dependencies, compiles and installs it.
+          </p>
+          <p class="mt-6 w-fit rounded-lg border border-white/10 bg-gray-950/70 px-4 py-2.5 font-mono text-sm text-gray-100">
+            <span
+              class="text-purple-300 select-none"
+              aria-hidden="true"
+            >$ </span>lin nano
+          </p>
+          <NuxtLink
+            to="/docs/package-management"
+            class="mt-4 text-sm font-medium text-indigo-300 transition-colors hover:text-white"
+          >
+            Learn package management
+          </NuxtLink>
+        </li>
+      </ol>
+
+      <div class="mt-14 flex flex-wrap gap-x-8 gap-y-3 border-t border-white/10 pt-6 text-sm">
+        <span class="text-gray-500">Also available</span>
+        <a
+          href="https://github.com/lunar-linux"
+          class="text-gray-300 transition-colors hover:text-white"
+        >Source code on GitHub</a>
+        <!-- TODO: real nightly build and bug tracker locations -->
+        <a
+          href="#"
+          class="text-gray-300 transition-colors hover:text-white"
+        >Nightly builds</a>
+        <a
+          href="#"
+          class="text-gray-300 transition-colors hover:text-white"
+        >Report a bug</a>
       </div>
     </div>
   </section>
 </template>
 
-<script setup lang="ts">
-type DownloadItem = {
-  text: string
-  href: string
-  icon: string
+<style scoped>
+.step-number {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in oklab, var(--color-indigo-300) 40%, transparent);
+  color: var(--color-indigo-200);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
-
-// TODO: replace the '#' placeholders once the real download locations are confirmed.
-const stableLinks: DownloadItem[] = [
-  {
-    text: 'Installation ISO (x86_64)',
-    href: '#',
-    icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
-  },
-  {
-    text: 'Checksum & Verification',
-    href: '#',
-    icon: 'M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2'
-  }
-]
-
-const devLinks: DownloadItem[] = [
-  {
-    text: 'Source Code (GitHub)',
-    href: 'https://github.com/lunar-linux',
-    icon: 'M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4'
-  },
-  {
-    text: 'Nightly Builds',
-    href: '#',
-    icon: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z'
-  },
-  {
-    text: 'Bug Reporting',
-    href: '#',
-    icon: 'M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z'
-  }
-]
-</script>
+</style>
