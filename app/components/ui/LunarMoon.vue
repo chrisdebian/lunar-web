@@ -173,6 +173,7 @@
     <div class="absolute inset-[9.85%] overflow-hidden rounded-full">
       <div
         class="moon-shadow absolute"
+        :class="{ 'is-playing': play }"
         :style="{ background: SHADOW_GRADIENT }"
       />
     </div>
@@ -250,6 +251,11 @@
 </template>
 
 <script setup lang="ts">
+withDefaults(defineProps<{
+  /** Start the "first light" animation (held on its first frame, the unlit moon, until then). */
+  play?: boolean
+}>(), { play: true })
+
 /** The unlit side: dark sky with a faint earthshine tint. */
 const NIGHT_SIDE = '#0C0F25'
 
@@ -302,7 +308,11 @@ const craters = [
    * "First light": start centred on the moon (nothing lit), slide to rest. The offset
    * (-245, +30) moon units is expressed as a percentage of the element's own 940-unit size.
    */
-  animation: moon-first-light 1.2s cubic-bezier(0.45, 0.05, 0.25, 1) 0.35s both;
+  animation: moon-first-light 1.2s cubic-bezier(0.45, 0.05, 0.25, 1) 0.35s both paused;
+}
+
+.moon-shadow.is-playing {
+  animation-play-state: running;
 }
 
 @keyframes moon-first-light {

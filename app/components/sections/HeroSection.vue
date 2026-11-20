@@ -28,8 +28,14 @@
       <!-- The moon: low on the right, cropped by the viewport edge -->
       <div class="hero-moon absolute">
         <div class="hero-moon-set">
-          <div class="hero-moon-rise">
-            <LunarMoon class="h-full w-full" />
+          <div
+            class="hero-moon-rise"
+            :class="{ 'is-playing': isMoonReady }"
+          >
+            <LunarMoon
+              :play="isMoonReady"
+              class="h-full w-full"
+            />
           </div>
         </div>
       </div>
@@ -67,6 +73,31 @@
 </template>
 
 <script setup lang="ts">
+/*
+ * Start the moon's rise and "first light" only once the page has settled: on a cold load the
+ * browser is busy fetching and starting the app, swapping in fonts and painting the moon's
+ * noise texture for the first time, and the animation would stutter. Cached loads start at once.
+ */
+const isMoonReady = ref(false)
+const MAX_WAIT_MS = 2500
+
+onMounted(async () => {
+  const pageLoaded = document.readyState === 'complete'
+    ? Promise.resolve()
+    : new Promise(resolve => window.addEventListener('load', resolve, { once: true }))
+  const timeout = new Promise(resolve => setTimeout(resolve, MAX_WAIT_MS))
+  await Promise.race([Promise.all([pageLoaded, document.fonts.ready]), timeout])
+  // Two frames: the (nearly invisible) moon gets painted before anything moves.
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    isMoonReady.value = true
+  }))
+})
+
+// Without JavaScript nothing would start the animations: show the moon as is.
+useHead({
+  noscript: [{ innerHTML: '<style>.hero-moon-rise,.moon-shadow{animation:none!important}</style>' }]
+})
+
 type Star = { x: number, y: number, r: number, o: number }
 
 // Small deterministic PRNG (mulberry32) so the starfield is identical on every render.
@@ -129,13 +160,19 @@ const stars: Star[] = Array.from({ length: 140 }, () => {
   height: 100%;
 }
 
+/* Held on its first frame until the page is ready (see isMoonReady), then plays once. */
 .hero-moon-rise {
-  animation: moonrise 1.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation: moonrise 1.6s cubic-bezier(0.2, 0.7, 0.2, 1) both paused;
+}
+
+.hero-moon-rise.is-playing {
+  animation-play-state: running;
 }
 
 @keyframes moonrise {
   from {
-    opacity: 0;
+    /* Not 0: an invisible layer isn't painted, and painting it is what we want done up front. */
+    opacity: 0.001;
     transform: translateY(10%);
   }
   to {
