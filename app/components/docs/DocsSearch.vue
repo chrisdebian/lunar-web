@@ -47,10 +47,15 @@
                 ref="searchInput"
                 v-model="query"
                 type="search"
+                role="combobox"
                 placeholder="Search documentation..."
                 aria-label="Search documentation"
+                aria-autocomplete="list"
+                :aria-expanded="results.length > 0"
+                :aria-controls="listboxId"
+                :aria-activedescendant="results.length ? optionId(activeIndex) : undefined"
                 class="flex-1 bg-transparent text-white outline-hidden placeholder:text-gray-500 [&::-webkit-search-cancel-button]:appearance-none"
-                @keydown.enter="openFirstResult"
+                @keydown="onInputKeydown"
               >
               <button
                 type="button"
@@ -92,15 +97,25 @@
               </p>
               <ul
                 v-else
+                :id="listboxId"
+                ref="listbox"
+                role="listbox"
+                aria-label="Search results"
                 class="space-y-1"
               >
                 <li
-                  v-for="result in results"
+                  v-for="(result, index) in results"
+                  :id="optionId(index)"
                   :key="result.path"
+                  role="option"
+                  :aria-selected="index === activeIndex"
                 >
                   <NuxtLink
                     :to="result.path"
-                    class="block rounded-lg p-3 transition-colors hover:bg-gray-900 focus:bg-gray-900 focus:outline-hidden"
+                    tabindex="-1"
+                    class="block rounded-lg border-l-2 p-3 transition-colors"
+                    :class="index === activeIndex ? 'border-blue-400 bg-gray-900' : 'border-transparent'"
+                    @mousemove="activeIndex = index"
                     @click="close"
                   >
                     <span class="text-xs tracking-wide text-blue-400 uppercase">
@@ -114,6 +129,16 @@
                   </NuxtLink>
                 </li>
               </ul>
+            </div>
+
+            <div
+              v-if="results.length"
+              class="hidden items-center gap-4 border-t border-gray-800 px-4 py-2 text-xs text-gray-500 sm:flex"
+              aria-hidden="true"
+            >
+              <span><kbd class="search-kbd">↑</kbd> <kbd class="search-kbd">↓</kbd> to move</span>
+              <span><kbd class="search-kbd">Enter</kbd> to open</span>
+              <span><kbd class="search-kbd">Esc</kbd> to close</span>
             </div>
           </div>
         </div>
@@ -135,6 +160,13 @@ const results = ref<SearchResult[]>([])
 const isOpen = ref(false)
 const searchInput = ref<HTMLInputElement>()
 const shortcutLabel = ref('Ctrl K')
+const activeIndex = ref(0)
+const listbox = ref<HTMLUListElement>()
+
+// Two instances live in the header (desktop + compact), so ids must be unique.
+const uid = useId()
+const listboxId = `docs-search-${uid}-results`
+const optionId = (index: number) => `docs-search-${uid}-result-${index}`
 
 const open = () => {
   isOpen.value = true
@@ -148,19 +180,42 @@ const close = () => {
   results.value = []
 }
 
-const openFirstResult = () => {
-  const first = results.value[0]
-  if (first) {
-    navigateTo(first.path)
+const openResult = (index: number) => {
+  const result = results.value[index]
+  if (result) {
+    navigateTo(result.path)
     close()
   }
 }
+
+// Arrow keys move the highlight (wrapping around); Enter opens the highlighted result.
+const onInputKeydown = (event: KeyboardEvent) => {
+  const count = results.value.length
+  if (!count) return
+
+  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    event.preventDefault()
+    const step = event.key === 'ArrowDown' ? 1 : -1
+    activeIndex.value = (activeIndex.value + step + count) % count
+  } else if (event.key === 'Enter') {
+    event.preventDefault()
+    openResult(activeIndex.value)
+  }
+}
+
+// Keep the highlighted result visible when moving through a long list.
+watch(activeIndex, (index) => {
+  nextTick(() => {
+    listbox.value?.querySelector(`#${CSS.escape(optionId(index))}`)?.scrollIntoView({ block: 'nearest' })
+  })
+})
 
 let searchTimeout: ReturnType<typeof setTimeout> | undefined
 const runSearch = () => {
   clearTimeout(searchTimeout)
   searchTimeout = setTimeout(() => {
     results.value = search(query.value)
+    activeIndex.value = 0
   }, 150)
 }
 
@@ -192,3 +247,17 @@ onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeydown)
 })
 </script>
+
+<style scoped>
+.search-kbd {
+  display: inline-block;
+  min-width: 1.5em;
+  padding: 0 0.35em;
+  border: 1px solid var(--color-gray-700);
+  border-radius: 0.25rem;
+  background: var(--color-gray-800);
+  color: var(--color-gray-400);
+  font-family: inherit;
+  text-align: center;
+}
+</style>
