@@ -60,6 +60,8 @@ runs:
       shell: bash
       run: yarn generate
       env:
+        # For the moonbase arrivals board (GitHub API, read-only)
+        GITHUB_TOKEN: ${{ github.token }}
         NUXT_APP_BASE_URL: ${{ steps.urls.outputs.base-path }}
         NUXT_PUBLIC_SITE_URL: ${{ steps.urls.outputs.site-url }}
         NUXT_PUBLIC_INDEXABLE: 'false'
