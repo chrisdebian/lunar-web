@@ -160,7 +160,7 @@ Before relying on an advanced installation:
 ### Community Support
 
 - IRC: #lunar on irc.libera.chat
-- Mailing lists: Check lunar-linux.org
+- Mailing lists: [lists.lunar-linux.org](http://lists.lunar-linux.org/cgi-bin/mailman/listinfo)
 - Forums: Community forums on lunar-linux.org
 
 ### External Documentation

@@ -327,7 +327,7 @@ See [Module Submission](/docs/development/module-submission) for information on 
 
 If you need help writing modules:
 - Join #lunar on irc.libera.chat
-- Ask on the lunar mailing list
+- Ask on the [Lunar mailing lists](http://lists.lunar-linux.org/cgi-bin/mailman/listinfo)
 - Check existing modules for examples
 
 Remember: The best way to learn is by examining existing modules in the moonbase!
