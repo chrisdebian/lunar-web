@@ -102,11 +102,22 @@
 const isMoonReady = usePageSettled()
 watch(isMoonReady, () => scheduleShootingStar(), { once: true })
 
+/*
+ * The twinkling stars, in % of the hero. Placed in open sky: clear of the copy and the moon (top
+ * right on phones, the right half on desktop) and above the "horizon" fade (60% down), so most are
+ * visible at any width. Each has its own pace, and negative delays start them out of step.
+ */
 const twinkles = [
   { x: 9, y: 14, size: 2.5, duration: 6.5, delay: 0 },
-  { x: 47, y: 9, size: 2, duration: 8.5, delay: 2.2 },
-  { x: 60, y: 30, size: 2.5, duration: 5.5, delay: 1.1 },
-  { x: 34, y: 82, size: 2, duration: 7.5, delay: 3.4 }
+  { x: 47, y: 9, size: 2, duration: 8.5, delay: -2.2 },
+  { x: 26, y: 19, size: 1.5, duration: 9.5, delay: -4 },
+  { x: 36, y: 24, size: 2, duration: 7.5, delay: -5 },
+  { x: 64, y: 10, size: 1.5, duration: 11, delay: -6 },
+  { x: 88, y: 9, size: 2, duration: 7, delay: -1.5 },
+  { x: 2, y: 42, size: 1.5, duration: 10, delay: -7 },
+  { x: 55, y: 68, size: 2, duration: 6, delay: -2.5 },
+  { x: 80, y: 64, size: 2, duration: 9, delay: -3 },
+  { x: 93, y: 72, size: 2.5, duration: 8, delay: -0.8 }
 ]
 
 /*
