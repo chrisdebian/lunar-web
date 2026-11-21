@@ -9,7 +9,7 @@ describe('navCurrent', () => {
 
   it('marks a section link on the pages below it', () => {
     expect(navCurrent('/docs/package-management/lin', '/docs')).toBe('true')
-    expect(navCurrent('/news/we-are-still-very-much-alive', '/news')).toBe('true')
+    expect(navCurrent('/news/2017-10-18-we-are-still-very-much-alive', '/news')).toBe('true')
   })
 
   it('does not match a path that only shares a prefix', () => {

@@ -22,6 +22,8 @@ export default defineContentConfig({
       source: 'news/*.md',
       schema: z.object({
         date: z.date(),
+        // Who posted it (the nick from the old WordPress site for imported posts).
+        author: z.string().optional(),
         // Filled in at build time (nuxt.config.ts hook), not in frontmatter.
         readingTime: z.number().optional()
       })

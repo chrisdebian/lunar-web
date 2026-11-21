@@ -162,7 +162,7 @@ what sending a dispatch requires); each run gets a token that lasts an hour.
 ```text
 app/                  Nuxt application (pages, components, composables, layouts, styles)
 content/docs/         Documentation pages (Markdown)
-content/news/         News articles (Markdown)
+content/news/         News articles (Markdown), one per file: YYYY-MM-DD-slug.md
 content.config.ts     Content collections and their frontmatter schemas
 server/routes/        rss.xml, sitemap.xml, robots.txt, the search index (search.json) and moonbase-arrivals.json
 server/utils/         Shared server code (moonbase.ts: the arrivals board data)

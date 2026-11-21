@@ -33,6 +33,10 @@
               >{{ formatDate(article.date) }}</time>
               <span class="text-indigo-300/70">{{ moonPhaseName(publishedPhase) }}</span>
               <span
+                v-if="article.author"
+                class="text-gray-400"
+              >by {{ article.author }}</span>
+              <span
                 v-if="article.readingTime"
                 class="text-gray-500 lg:hidden"
               >{{ article.readingTime }} min read</span>
