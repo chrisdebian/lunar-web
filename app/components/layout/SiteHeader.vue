@@ -48,10 +48,10 @@
         <DocsSearch />
         <NuxtLink
           to="/download"
-          class="get-lunar rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-indigo-950/50 transition-colors hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-300"
+          class="download-button rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-indigo-950/50 transition-colors hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-300"
           :aria-current="current('/download')"
         >
-          Get Lunar
+          Download
         </NuxtLink>
       </div>
 
@@ -113,7 +113,7 @@
             class="block rounded-lg bg-indigo-600 px-4 py-3 text-center font-medium text-white shadow-lg shadow-indigo-950/50 transition-colors hover:bg-indigo-500"
             :aria-current="current('/download')"
           >
-            Get Lunar
+            Download
           </NuxtLink>
         </li>
       </ul>
@@ -187,7 +187,7 @@ const current = (to: string) => navCurrent(route.path, to)
 }
 
 /* On /download the button is already where it leads; a ring marks it as the current page. */
-.get-lunar[aria-current] {
+.download-button[aria-current] {
   outline: 2px solid var(--color-indigo-300);
   outline-offset: 2px;
 }
