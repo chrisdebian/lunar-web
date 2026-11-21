@@ -20,10 +20,34 @@
         </a>
       </header>
 
+      <!-- Jump to a year: the log is one long page, this is the way into its middle -->
+      <nav
+        v-if="years.length > 1"
+        aria-label="Jump to year"
+        class="mt-8 text-sm md:flex md:items-baseline md:gap-x-4"
+      >
+        <p class="text-gray-500">
+          Jump to
+        </p>
+        <ul class="mt-2 flex max-w-xs flex-wrap gap-x-4 gap-y-2 md:mt-0 md:max-w-none">
+          <li
+            v-for="year in years"
+            :key="year.year"
+          >
+            <a
+              :href="`#${year.id}`"
+              :title="`${year.count} ${year.count === 1 ? 'post' : 'posts'}`"
+              class="font-medium text-gray-400 tabular-nums transition-colors hover:text-indigo-200 focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-300"
+              @click="skipIntro = true"
+            >{{ year.year }}</a>
+          </li>
+        </ul>
+      </nav>
+
       <ol
         v-if="entries.length"
         class="news-log mt-16"
-        :class="{ 'is-playing': isSettled }"
+        :class="{ 'is-playing': isSettled, 'skip-intro': skipIntro }"
       >
         <template
           v-for="entry in entries"
@@ -40,7 +64,9 @@
             <span class="news-year-label text-center text-sm font-semibold text-indigo-200/80 tabular-nums">{{ entry.year }}</span>
           </li>
 
+          <!-- The year's first post is the jump target (the year marker above it is hidden from screen readers) -->
           <li
+            :id="entry.startsYear ? yearId(entry.year) : undefined"
             class="news-entry group relative grid grid-cols-[3rem_minmax(0,1fr)] gap-x-5 pb-14 last:pb-0 sm:grid-cols-[3.5rem_minmax(0,1fr)] sm:gap-x-8"
             :style="{ '--i': entry.order }"
           >
@@ -114,8 +140,22 @@ const entries = computed(() => articles.value.map((article, index) => {
   return { ...article, phase, phaseName: moonPhaseName(phase), year, startsYear, order: Math.min(index, 6) }
 }))
 
+const yearId = (year: number) => `year-${year}`
+const years = computed(() => {
+  const counts = new Map<number, number>()
+  for (const entry of entries.value) counts.set(entry.year, (counts.get(entry.year) ?? 0) + 1)
+  return [...counts].map(([year, count]) => ({ year, count, id: yearId(year) }))
+})
+
 // The orbit draws itself down the list once the page has settled (see AGENTS.md).
 const isSettled = usePageSettled()
+
+// Jumping into the middle of the log skips the intro, so you never land on entries still waiting
+// for their turn to appear. Also when the page is opened with a year in the URL.
+const skipIntro = ref(false)
+onMounted(() => {
+  if (location.hash.startsWith('#year-')) skipIntro.value = true
+})
 
 useHead({
   noscript: [{ innerHTML: '<style>.news-log *{animation:none!important}</style>' }]
@@ -192,6 +232,15 @@ usePageSeo({
 
 .is-playing :is(.news-moon, .news-text, .news-year-label, .news-orbit-dots) {
   animation-play-state: running;
+}
+
+/* Room for the year marker above the year's first post, on top of the fixed header's 7rem */
+.news-entry[id] {
+  scroll-margin-top: 10rem;
+}
+
+.skip-intro :is(.news-moon, .news-text, .news-year-label, .news-orbit-dots) {
+  animation: none;
 }
 
 @keyframes news-moon-in {
