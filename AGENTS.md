@@ -23,7 +23,7 @@ docker compose up dev         # dev server in Docker (no local Node), http://loc
 ## Layout
 
 - `app/pages/`: `index.vue` (homepage from `components/sections/*`), `docs/[...slug].vue`, `news/[...slug].vue`, `download.vue` (renders `content/download.md`); shared header and footer in `app/layouts/default.vue`
-- Navigation: the header lists real places (Docs, News, the homepage's `#community`, and the Get Lunar button to `/download`) and marks the current one with `navCurrent()` (`app/utils/navigation.ts`); every inner page starts with `<Breadcrumb>`, which always begins at Home
+- Navigation: the header lists real places (Docs, News, the homepage's `#community`, and the Download button to `/download`) and marks the current one with `navCurrent()` (`app/utils/navigation.ts`); every inner page starts with `<Breadcrumb>`, which always begins at Home. Adding a page: see the checklist below
 - `app/components/`: registered by **file name only** (`pathPrefix: false`): `<DocCard>`, not `<UiDocCard>`
 - `app/components/content/ProsePre.vue`: overrides Markdown code blocks (copy button). In MDC, `ProsePre` = block, `ProseCode` = inline code
 - `app/composables/`: `useDocsNavigation` (tree for sidebar and breadcrumbs), `useDocSearch` (FlexSearch over `/search.json`), `useSiteLinks` (`withBase`, `absoluteUrl`), `usePageSeo` (title, description, canonical, OG)
@@ -40,6 +40,37 @@ docker compose up dev         # dev server in Docker (no local Node), http://loc
 - `failOnError: true`: a link to a missing page fails `yarn generate`. Content links must be absolute (`/docs/...`); `check-content` rejects relative ones.
 - Placeholder links (`href="#"`) are intentionally kept until real destinations are confirmed; don't invent URLs.
 - Homepage section anchors (`#features`, `#downloads`, `#community`) are linked as `/#id` so they work from any page.
+
+## Adding a page: navigation checklist
+
+The navigation model: the header lists only real places, the homepage previews them, and every inner
+page shows where you are and the way home. A new page has to fit that model, or the site goes back to
+being a mix of anchors and pages with no sense of place.
+
+1. **Decide where it lives.** A top-level destination people come to the site for can go in the header
+   (`navLinks` in `SiteHeader.vue`). Keep that list short: the desktop row (logo, links, search,
+   Download button) has to fit at 1024px, so check that width. Anything else goes in a footer column
+   (`SiteFooter.vue`) and is linked from related pages. Downloads is the button, not a link.
+2. **Header entry:** add an icon for the mobile menu in `mobileIcons`, using a literal `'ph:…'` string.
+   Icons are bundled by scanning the source, so a name built at runtime renders blank, and the dev server
+   has to restart to pick up a new one. The current-section marker comes from `navCurrent()`
+   automatically: `/foo` lights up on `/foo` and everywhere under `/foo/`. Hash links are never marked.
+3. **Breadcrumb:** start the page with `<Breadcrumb :items="[…]" />`. Home is added for you. The trail
+   can stop at the parent when the next crumb would just repeat the `<h1>` (news articles show
+   "Home › News"), because a crumb is only plain text when it matches the current URL.
+4. **Homepage section:** if the page has one, the section is a preview with an "All …" link to the page
+   (top right, like News and Downloads). It reads the same data, so the two can't drift apart. CTAs
+   (hero buttons and the like) link to the page, not to the section's anchor.
+5. **Rendering from markdown:** for a one-off page, give the file its own collection in
+   `content.config.ts` (see `download`) and query it with `queryCollection(…).first()`. Content pages
+   are prerendered automatically. A page made only in Vue is prerendered only if something links to it,
+   so add it to `nitro.prerender.routes` if nothing does.
+6. **Wire it up:** add the path to `server/routes/sitemap.xml.ts` if it doesn't come from the `docs` or
+   `news` collections. If markdown links to a Vue-only page, add it to `extraRoutes` in
+   `scripts/check-content.mjs`, otherwise `check-content` reports the link as broken. Site search
+   (`/search.json`) covers docs only.
+7. **Check it:** run `yarn verify` and the sub-path build. Look at phone, tablet and desktop widths with
+   the mobile menu open, and confirm the right header item lights up.
 
 ## Conventions
 
