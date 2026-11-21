@@ -23,9 +23,8 @@ logs
 .env.*
 !.env.example
 
-# AI
+# AI (CLAUDE.md is committed: it imports AGENTS.md)
 .claude
-CLAUDE.md
 .cursor*
 .playwright-mcp
 # Staging area for imported docs not yet refined
