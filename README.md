@@ -136,18 +136,25 @@ also kept live:
 
 Other hosts (the Docker image, PR previews) keep the data from their build.
 
-One-time setup, by an organization owner:
+One-time setup, by an organization owner. The signal is sent by a GitHub App that belongs to the
+organization (not a person), never expires, and can only write `lunar-web`'s contents (which is
+what sending a dispatch requires); each run gets a token that lasts an hour.
 
-1. Create a fine-grained personal access token: resource owner `lunar-linux`, repository access
-   *only* `lunar-web`, permission *Contents: Read and write* (needed to send the signal). It expires
-   after at most a year; until it's renewed, the hourly run keeps the board fresh.
-2. Store it as an organization secret for the moonbase repositories:
+1. Create the App: *Organization settings → Developer settings → GitHub Apps → New GitHub App*.
+   Name it e.g. "Lunar website notifier", any homepage URL, untick *Webhook → Active*, set
+   *Repository permissions → Contents: Read and write*, and allow installing it on this account
+   only.
+2. Install it (*Install App*) on `lunar-linux` with access to **only** `lunar-web`.
+3. On the App's page, note the **Client ID** and *Generate a private key* (downloads a `.pem`).
+4. Make both available to the moonbase repositories (the key is read from the file, so it never
+   appears on screen):
    ```bash
-   gh secret set MOONBASE_DISPATCH_TOKEN --org lunar-linux \
-     --repos moonbase-core,moonbase-other,moonbase-xorg,moonbase-kde,moonbase-gnome3,moonbase-gnome,moonbase-xfce,moonbase-efl
+   repos=moonbase-core,moonbase-other,moonbase-xorg,moonbase-kde,moonbase-gnome3,moonbase-gnome,moonbase-xfce,moonbase-efl
+   gh variable set MOONBASE_APP_CLIENT_ID --org lunar-linux --repos "$repos" --body '<Client ID>'
+   gh secret set MOONBASE_APP_PRIVATE_KEY --org lunar-linux --repos "$repos" < ~/Downloads/<app>.private-key.pem
    ```
-   (`gh` asks for the value, so the token doesn't end up in your shell history.)
-3. Test it: `gh workflow run moonbase-feed.yml -R lunar-linux/lunar-web` runs the refresh by hand;
+   Then delete the downloaded `.pem`; a new key can be generated any time.
+5. Test it: `gh workflow run moonbase-feed.yml -R lunar-linux/lunar-web` runs the refresh by hand;
    a push to any moonbase repository should start a "Moonbase feed" run within a minute.
 
 ## Project layout
