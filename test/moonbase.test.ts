@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseVersionBump, revertedSubject, summarizeArrivals, type Commit } from '../server/utils/moonbase'
+import { landingDates, parseVersionBump, revertedSubject, summarizeArrivals, type Commit } from '../server/utils/moonbase'
 
 describe('parseVersionBump', () => {
   // Real commit subjects from the moonbase repositories
@@ -40,7 +40,9 @@ describe('revertedSubject', () => {
 describe('summarizeArrivals', () => {
   let minute = 0
   /** A commit from the API, `minutesAgo` before 2026-11-20 12:00 UTC. */
-  const commit = (subject: string, minutesAgo = minute++, login: string | null = 'stumbles'): Commit => ({
+  const commit = (subject: string, minutesAgo = minute++, login: string | null = 'stumbles', parents: string[] = []): Commit => ({
+    sha: `sha-${minutesAgo}`,
+    parents: parents.map(sha => ({ sha })),
     html_url: `https://github.com/lunar-linux/x/commit/${minutesAgo}`,
     author: login ? { login } : null,
     commit: {
@@ -98,6 +100,51 @@ describe('summarizeArrivals', () => {
     expect(board.total).toBe(30)
   })
 
+  describe('updates merged from a pull request', () => {
+    // Like firefox 160.0 in moonbase-other (#7571): committed days before the merge
+    const DAY = 24 * 60
+    const history = () => [
+      commit('Merge pull request #7571 from esselfe/firefox-160.0', 10, null, ['sha-15', 'firefox']),
+      commit('atuin: Version bumped to 18.25.1', 15, 'Ratler', ['sha-20']),
+      commit('nss: version bumped to 3.134', 20, 'florin65', ['sha-30']),
+      commit('HTML-Parser: version bumped to 3.87', 30, 'florin65', ['firmware']),
+      { ...commit('firefox: version bumped to 160.0', 6 * DAY, 'esselfe', ['firmware']), sha: 'firefox' },
+      { ...commit('linux-firmware: Bump to 1.0.', 7 * DAY, 'florin65'), sha: 'firmware' }
+    ]
+
+    it('dates them by the merge, not by when they were written', () => {
+      const board = summarizeArrivals([{ repository: 'moonbase-other', commits: history() }], now)
+      expect(board.arrivals[0]).toMatchObject({ module: 'firefox', date: '2026-11-20T11:50:00.000Z' })
+    })
+
+    it('reaches the board when the section is full of updates written after it', () => {
+      const board = summarizeArrivals([{ repository: 'moonbase-other', commits: history() }], now)
+      expect(board.arrivals.map(a => a.module)).toEqual(['firefox', 'atuin', 'nss'])
+      expect(board.total).toBe(5)
+    })
+
+    it('keeps the commit date for commits on the branch itself', () => {
+      const commits = history()
+      const dates = landingDates(commits)
+      expect(dates.get('sha-20')).toBe(commits[2]!.commit.committer.date)
+      expect(dates.get('firmware')).toBe(commits[5]!.commit.committer.date)
+    })
+
+    it('dates a branch merged twice by the merge that first brought each commit in', () => {
+      const commits = [
+        commit('Merge branch fix', 1, null, ['sha-2', 'sha-3']),
+        commit('Merge branch fix', 2, null, ['sha-5', 'sha-4']),
+        commit('foo: Bump to 2.0.', 3, 'stumbles', ['sha-4']),
+        commit('foo: Bump to 1.0.', 4, 'stumbles', ['sha-5']),
+        commit('bar: small tweak', 5)
+      ]
+      const dates = landingDates(commits)
+      expect(dates.get('sha-3')).toBe(commits[0]!.commit.committer.date)
+      expect(dates.get('sha-4')).toBe(commits[1]!.commit.committer.date)
+      expect(dates.get('sha-5')).toBe(commits[4]!.commit.committer.date)
+    })
+  })
+
   it('credits the commit author name when there is no GitHub login', () => {
     const board = summarizeArrivals([{ repository: 'moonbase-core', commits: [commit('nano: Bump to 8.6.', 1, null)] }], now)
     expect(board.arrivals[0]!.crew).toBe('Dennis Veatch')
@@ -106,6 +153,8 @@ describe('summarizeArrivals', () => {
   describe('updates committed by Lunar Bot', () => {
     // Like atuin 18.25.1 in moonbase-other (859f929): the bot authors it, the person is a co-author
     const botCommit = (subject: string, minutesAgo: number, coAuthors: string[]): Commit => ({
+      sha: `bot-${minutesAgo}`,
+      parents: [],
       html_url: `https://github.com/lunar-linux/x/commit/${minutesAgo}`,
       author: null,
       commit: {
@@ -115,6 +164,8 @@ describe('summarizeArrivals', () => {
       }
     })
     const byAda: Commit = {
+      sha: 'ada',
+      parents: [],
       html_url: 'https://github.com/lunar-linux/x/commit/ada',
       author: { login: 'adamoon' },
       commit: {
