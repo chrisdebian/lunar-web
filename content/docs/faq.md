@@ -377,7 +377,7 @@ See [Moonbase](/docs/package-management/moonbase) for more details.
 
 theedge is the same as lunar, and is also known as the core code. theedge is just another version of lunar. These two pieces of code install your packages, but they do not contain package descriptions. Those are defined in moonbase.
 
-Note that thedge is not used anymore, as of november 2026.
+Note that theedge is not used anymore, as of november 2026.
 
 theedge was a development version of lunar. Often there were many more features in theedge, and bugs were fixed quicker as well. However, if you do not like all this tweaking on your system, we advise you to use the stable lunar core tools instead.
 
