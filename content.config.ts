@@ -25,6 +25,23 @@ export default defineContentConfig({
         // Filled in at build time (nuxt.config.ts hook), not in frontmatter.
         readingTime: z.number().optional()
       })
+    }),
+    // A single page (/download): the featured ISO lives in frontmatter, so the homepage's
+    // Downloads section reads the same data and the two can't drift apart.
+    download: defineCollection({
+      type: 'page',
+      source: 'download.md',
+      schema: z.object({
+        featured: z.object({
+          version: z.string(),
+          channel: z.string(),
+          arch: z.string(),
+          // Date of the build the page describes; the release's moon phase is drawn from it.
+          built: z.date(),
+          href: z.string(),
+          checksum: z.string()
+        })
+      })
     })
   }
 })

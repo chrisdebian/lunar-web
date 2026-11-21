@@ -1,16 +1,7 @@
 <template>
   <div class="px-6 pt-10 pb-24">
     <div class="container mx-auto max-w-5xl">
-      <NuxtLink
-        to="/news"
-        class="inline-flex items-center gap-2 text-sm text-gray-400 transition-colors hover:text-white"
-      >
-        <Icon
-          name="ph:arrow-left"
-          class="h-4 w-4"
-        />
-        All news
-      </NuxtLink>
+      <Breadcrumb :items="[{ label: 'News', path: '/news' }]" />
 
       <div class="mt-10 lg:grid lg:grid-cols-[8rem_minmax(0,1fr)] lg:gap-x-12">
         <!-- Reading progress: the moon waxes from new to full as you read (wide screens only) -->

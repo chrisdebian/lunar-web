@@ -9,9 +9,8 @@
 
     <article>
       <Breadcrumb
-        :current-path="path"
-        :current-title="page.title"
-        :navigation="navigation"
+        :items="breadcrumbs"
+        class="mb-6"
       />
 
       <header class="mb-8 border-b border-gray-800 pb-6">
@@ -84,6 +83,7 @@
 <script setup lang="ts">
 import { withoutTrailingSlash } from 'ufo'
 import type { RelatedDoc } from '~/components/docs/RelatedArticles.vue'
+import type { DocNavItem } from '~/composables/useDocsNavigation'
 
 const route = useRoute()
 const path = withoutTrailingSlash(route.path)
@@ -103,6 +103,17 @@ const { markVisited } = useVisitedDocs()
 onMounted(() => markVisited(path))
 
 const { data: navigation } = await useDocsNavigation()
+
+// Page titles by path, so intermediate crumbs show "Package Management" rather than the URL slug.
+const breadcrumbs = computed(() => {
+  const titles = new Map<string, string>()
+  const walk = (items: DocNavItem[]) => items.forEach((item) => {
+    titles.set(item.path, item.title)
+    walk(item.children)
+  })
+  walk(navigation.value ?? [])
+  return docsBreadcrumbs(path, titles, page.value.title)
+})
 
 // Up to three other pages sharing the most tags with this one.
 const { data: relatedArticles } = await useAsyncData(`docs-related:${path}`, async (): Promise<RelatedDoc[]> => {

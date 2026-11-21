@@ -107,6 +107,7 @@ const footerLinks: FooterCategory[] = [
   {
     title: 'Resources',
     links: [
+      { text: 'Download', href: '/download' },
       { text: 'Documentation', href: '/docs' },
       { text: 'News', href: '/news' },
       { text: 'RSS Feed', href: withBase('/rss.xml'), external: true }
