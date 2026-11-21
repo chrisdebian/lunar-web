@@ -64,10 +64,11 @@
               class="board-row group relative"
               @mouseenter="rattle(index)"
             >
+              <!-- The whole row is the link: z-10 keeps it above the tiles, which are positioned (`.flap`) -->
               <a
                 :href="row.url"
                 :title="`${row.module} ${row.version}`"
-                class="absolute inset-0 rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-300"
+                class="absolute inset-0 z-10 rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-300"
               >
                 <span class="sr-only">{{ row.module }} {{ row.version }}, landed in moonbase-{{ row.gate }} <template v-if="row.crew">by {{ row.crew }} </template>on {{ row.landed }}</span>
               </a>

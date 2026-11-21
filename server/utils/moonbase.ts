@@ -44,6 +44,9 @@ export type MoonbaseArrivals = {
 
 /** The parts of a GitHub API commit we use. */
 export type Commit = {
+  sha: string
+  /** First parent first; a merge commit has two */
+  parents: { sha: string }[]
   html_url: string
   author: { login: string } | null
   commit: { message: string, author: { name: string, email: string }, committer: { date: string } }
@@ -102,6 +105,38 @@ export const parseVersionBump = (subject: string): VersionBump | null => {
 export const revertedSubject = (subject: string) => subject.match(/^Revert "(.+)"$/)?.[1] ?? null
 
 /**
+ * When each commit landed on the branch (newest commit first in `commits`). A commit brought in by
+ * a merge landed when it was merged, which can be days after it was written: firefox 160.0 in
+ * moonbase-other was committed on Nov 15 and merged on Nov 21. Commits on the branch's own line
+ * (the newest commit and its first parents) landed when they were committed. Commits this can't
+ * place are left out; they count from their own date.
+ */
+export const landingDates = (commits: Commit[]) => {
+  const bySha = new Map(commits.map(entry => [entry.sha, entry]))
+  const mainline: Commit[] = []
+  const onMainline = new Set<string>()
+  for (let entry = commits[0]; entry && !onMainline.has(entry.sha); entry = bySha.get(entry.parents[0]?.sha ?? '')) {
+    mainline.push(entry)
+    onMainline.add(entry.sha)
+  }
+
+  const landed = new Map<string, string>()
+  // Oldest first, so a branch merged twice dates each commit by the merge that first brought it in
+  for (const merge of mainline.reverse()) {
+    const date = merge.commit.committer.date
+    landed.set(merge.sha, date)
+    const queue = merge.parents.slice(1).map(({ sha }) => sha)
+    while (queue.length) {
+      const entry = bySha.get(queue.pop()!)
+      if (!entry || onMainline.has(entry.sha) || landed.has(entry.sha)) continue
+      landed.set(entry.sha, date)
+      queue.push(...entry.parents.map(({ sha }) => sha))
+    }
+  }
+  return landed
+}
+
+/**
  * Turns each repository's commits (newest first) into the board: version updates only, reverted
  * ones dropped, newest first, one row per module, at most PER_GATE rows per section.
  */
@@ -119,6 +154,7 @@ export const summarizeArrivals = (
 
   const bumps: Arrival[] = []
   for (const { repository, commits } of repositories) {
+    const landed = landingDates(commits)
     const reverted = new Set<string>()
     // Newest first, so a revert is seen before the commit it reverts.
     for (const entry of commits) {
@@ -136,7 +172,7 @@ export const summarizeArrivals = (
         ...bump,
         gate: repository.replace(/^moonbase-/, ''),
         crew: crewOf(entry, logins),
-        date: commit.committer.date,
+        date: landed.get(entry.sha) ?? commit.committer.date,
         url: html_url
       })
     }
@@ -165,15 +201,32 @@ export const fetchMoonbaseArrivals = async (token?: string): Promise<MoonbaseArr
   const headers: Record<string, string> = { 'accept': 'application/vnd.github+json', 'user-agent': 'lunar-www' }
   if (token) headers.authorization = `Bearer ${token}`
 
+  const get = async <T>(url: string) => {
+    const response = await fetch(url, { headers, signal: AbortSignal.timeout(10_000) })
+    if (!response.ok) throw new Error(`GET ${url}: ${response.status} ${response.statusText}`)
+    return await response.json() as T
+  }
+
   const commitsOf = async (repository: string) => {
+    const api = `https://api.github.com/repos/${MOONBASE_OWNER}/${repository}`
     const commits: Commit[] = []
     for (let page = 1; page <= MAX_PAGES; page++) {
-      const url = `https://api.github.com/repos/${MOONBASE_OWNER}/${repository}/commits?since=${since}&per_page=100&page=${page}`
-      const response = await fetch(url, { headers, signal: AbortSignal.timeout(10_000) })
-      if (!response.ok) throw new Error(`GET ${url}: ${response.status} ${response.statusText}`)
-      const batch = await response.json() as Commit[]
+      const batch = await get<Commit[]>(`${api}/commits?since=${since}&per_page=100&page=${page}`)
       commits.push(...batch)
       if (batch.length < 100) break
+    }
+    // `since` goes by commit date, so a pull request that was open for longer than DAYS is merged
+    // without its commits. Fetch what such a merge brought in.
+    const known = new Set(commits.map(({ sha }) => sha))
+    for (const merge of commits.filter(({ parents }) => parents.length > 1)) {
+      const [base, head] = merge.parents
+      if (known.has(head!.sha)) continue
+      const { commits: merged } = await get<{ commits: Commit[] }>(`${api}/compare/${base!.sha}...${head!.sha}`)
+      for (const entry of merged.reverse()) {
+        if (known.has(entry.sha)) continue
+        known.add(entry.sha)
+        commits.push(entry)
+      }
     }
     return commits
   }
