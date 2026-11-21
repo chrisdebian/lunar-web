@@ -46,7 +46,10 @@ export default defineNuxtConfig({
         { name: 'darkreader-lock', content: 'true' }
       ],
       link: [
-        { rel: 'icon', type: 'image/x-icon', href: `${baseURL}favicon.ico` },
+        // The logo's mark without the "Lunar Linux" text. Browsers that take SVG use it; the rest use the ICO
+        // (sizes="32x32" stops Chrome from preferring the ICO over the SVG).
+        { rel: 'icon', type: 'image/svg+xml', href: `${baseURL}favicon.svg` },
+        { rel: 'icon', href: `${baseURL}favicon.ico`, sizes: '32x32' },
         { rel: 'alternate', type: 'application/rss+xml', title: 'Lunar Linux News', href: `${baseURL}rss.xml` }
       ]
     }
