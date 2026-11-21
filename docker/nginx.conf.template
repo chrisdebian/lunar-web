@@ -43,6 +43,7 @@ server {
 
     error_page 404 ${BASE_URL}404.html;
 
-    # Written at start-up by 40-base-url-redirect.sh for sub-path builds.
+    # Written at start-up by 40-base-url-redirect.sh: the sub-path redirect, or the old
+    # WordPress news URL redirects (legacy-redirects.conf) when served at the root.
     include /etc/nginx/snippets/*.conf;
 }

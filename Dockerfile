@@ -40,6 +40,8 @@ ENV BASE_URL=${NUXT_APP_BASE_URL}
 
 COPY docker/nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY --chmod=755 docker/40-base-url-redirect.sh /docker-entrypoint.d/
+# Old WordPress news URLs; only used when the site is served at the root.
+COPY docker/legacy-redirects.conf /etc/nginx/legacy-redirects.conf
 # Drop the stock nginx welcome page; only the site is served.
 RUN rm -rf /usr/share/nginx/html/*
 COPY --from=build /app/.output/public /usr/share/nginx/html${NUXT_APP_BASE_URL}
