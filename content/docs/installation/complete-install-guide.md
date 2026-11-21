@@ -4,7 +4,7 @@ description: "Comprehensive step-by-step guide for installing Lunar Linux 1.6.5 
 category: "installation"
 tags: ["installation", "iso", "guide", "1.6.5"]
 lastUpdated: 2025-11-02
-order: 2
+order: 3
 ---
 
 Lunar Linux is a revolutionary Linux distribution that is built entirely by compiling source code using your own custom optimizations. This guide will walk you through the complete installation process.

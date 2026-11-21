@@ -4,7 +4,7 @@ description: "Understanding Lunar Linux's package repository structure and organ
 category: "package-management"
 tags: ["moonbase", "modules", "sections", "repository"]
 lastUpdated: 2025-11-02
-order: 1
+order: 2
 ---
 
 The moonbase is the complete collection of all the software packages (modules) that Lunar Linux offers its users. It is organized in a hierarchical structure of directories and files, usually found on the user's system at `/var/lib/lunar/moonbase`.

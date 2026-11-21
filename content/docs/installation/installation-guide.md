@@ -2,7 +2,7 @@
 title: "Installation Guide"
 description: "Step-by-step guide to installing Lunar Linux"
 category: "installation"
-order: 3
+order: 2
 lastUpdated: 2025-11-02
 tags: [installation, guide, setup]
 relatedDocs: [requirements]
