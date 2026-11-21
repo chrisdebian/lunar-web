@@ -13,6 +13,7 @@ export default defineEventHandler(async (event) => {
   const entries: SitemapEntry[] = [
     { path: '/' },
     { path: '/news' },
+    { path: '/download' },
     ...docs.map(doc => ({ path: doc.path, lastmod: doc.lastUpdated })),
     ...news.map(article => ({ path: article.path, lastmod: article.date }))
   ]
