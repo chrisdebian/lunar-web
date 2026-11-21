@@ -4,7 +4,7 @@
     <FeaturesSection />
     <NewsSection />
     <DownloadsSection />
-    <DocumentationSection />
+    <MoonbaseArrivals />
     <CommunitySection />
   </div>
 </template>
