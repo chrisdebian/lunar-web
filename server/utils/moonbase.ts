@@ -24,7 +24,10 @@ export type Arrival = {
   version: string
   /** Moonbase section, e.g. "core" for moonbase-core */
   gate: string
-  /** Who landed it: the GitHub login, or the commit's author name */
+  /**
+   * Who landed it: the GitHub login, or the commit's author name. For a bot's commit, the person
+   * it co-authored with (see `crewOf`).
+   */
   crew: string
   date: string
   url: string
@@ -43,7 +46,40 @@ export type MoonbaseArrivals = {
 export type Commit = {
   html_url: string
   author: { login: string } | null
-  commit: { message: string, author: { name: string }, committer: { date: string } }
+  commit: { message: string, author: { name: string, email: string }, committer: { date: string } }
+}
+
+/*
+ * Lunar Bot opens the version-bump PRs in moonbase-other and authors their commits, with the person
+ * who asked for the update as a co-author ("Co-authored-by: Name <email>").
+ * The board credits that person.
+ */
+const BOT_EMAILS = new Set(['bot@lunar-linux.org'])
+const isBot = (email: string, login?: string) =>
+  BOT_EMAILS.has(email.toLowerCase()) || /\[bot\]$/.test(login ?? '') || /\[bot\]@users\.noreply\.github\.com$/i.test(email)
+
+const CO_AUTHOR = /^co-authored-by:\s*(.+?)\s*<([^>]+)>\s*$/gim
+// 12345+login@users.noreply.github.com, or login@users.noreply.github.com for older accounts
+const NOREPLY = /^(?:\d+\+)?([\w-]+)@users\.noreply\.github\.com$/i
+
+/** Co-authors from a commit message's `Co-authored-by:` trailers. */
+export const coAuthorsOf = (message: string) =>
+  [...message.matchAll(CO_AUTHOR)].map(([, name, email]) => ({ name: name!, email: email! }))
+
+/**
+ * Who landed a commit: the author's GitHub login or name. If a bot authored it, the first person
+ * who co-authored it, by the login their email has (`logins`, from other commits, or a GitHub
+ * noreply address), or else by name.
+ */
+const crewOf = ({ author, commit }: Commit, logins: Map<string, string>) => {
+  if (isBot(commit.author.email, author?.login)) {
+    const person = coAuthorsOf(commit.message).find(({ email }) => !isBot(email))
+    if (person) {
+      const email = person.email.toLowerCase()
+      return logins.get(email) ?? email.match(NOREPLY)?.[1] ?? person.name
+    }
+  }
+  return author?.login ?? commit.author.name
 }
 
 /*
@@ -73,11 +109,20 @@ export const summarizeArrivals = (
   repositories: { repository: string, commits: Commit[] }[],
   now = new Date()
 ): MoonbaseArrivals => {
+  // Email → GitHub login, from every commit GitHub linked to an account
+  const logins = new Map<string, string>()
+  for (const { commits } of repositories) {
+    for (const { commit, author } of commits) {
+      if (author && !isBot(commit.author.email, author.login)) logins.set(commit.author.email.toLowerCase(), author.login)
+    }
+  }
+
   const bumps: Arrival[] = []
   for (const { repository, commits } of repositories) {
     const reverted = new Set<string>()
     // Newest first, so a revert is seen before the commit it reverts.
-    for (const { commit, html_url, author } of commits) {
+    for (const entry of commits) {
+      const { commit, html_url } = entry
       const subject = commit.message.split('\n')[0]!.trim()
       const revert = revertedSubject(subject)
       if (revert) {
@@ -90,7 +135,7 @@ export const summarizeArrivals = (
       bumps.push({
         ...bump,
         gate: repository.replace(/^moonbase-/, ''),
-        crew: author?.login ?? commit.author.name,
+        crew: crewOf(entry, logins),
         date: commit.committer.date,
         url: html_url
       })
