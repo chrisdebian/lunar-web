@@ -100,6 +100,7 @@ const footerLinks: FooterCategory[] = [
     title: 'Project',
     links: [
       { text: 'About', href: '/docs/about' },
+      { text: 'History', href: '/history' },
       { text: 'Roadmap', href: '#', external: true },
       { text: 'Team', href: '#', external: true }
     ]

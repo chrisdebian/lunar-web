@@ -14,6 +14,7 @@ export default defineEventHandler(async (event) => {
     { path: '/' },
     { path: '/news' },
     { path: '/download' },
+    { path: '/history' },
     ...docs.map(doc => ({ path: doc.path, lastmod: doc.lastUpdated })),
     ...news.map(article => ({ path: article.path, lastmod: article.date }))
   ]
