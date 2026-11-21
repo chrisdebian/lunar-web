@@ -52,6 +52,7 @@ NUXT_APP_BASE_URL=/lunar/ NUXT_PUBLIC_SITE_URL=https://example.org/lunar/ yarn g
 | `NUXT_APP_BASE_URL` | `/` | Path the site is served from |
 | `NUXT_PUBLIC_SITE_URL` | `https://lunar-linux.org/` | Public URL (with sub-path); used for RSS, sitemap and canonical links |
 | `NUXT_PUBLIC_INDEXABLE` | `true` | `false` for previews: `robots.txt` disallows crawling and pages get `noindex` |
+| `GITHUB_TOKEN` | (none) | Optional. The homepage's moonbase arrivals board reads recent module updates from GitHub at build time; a token avoids GitHub's limit of 60 requests an hour. Without network access the board is left out |
 
 ## Run with Docker
 
@@ -126,7 +127,7 @@ app/                  Nuxt application (pages, components, composables, layouts,
 content/docs/         Documentation pages (Markdown)
 content/news/         News articles (Markdown)
 content.config.ts     Content collections and their frontmatter schemas
-server/routes/        rss.xml, sitemap.xml, robots.txt and the search index (search.json)
+server/routes/        rss.xml, sitemap.xml, robots.txt, the search index (search.json) and moonbase-arrivals.json
 scripts/              Content and link checks, the old-wiki import script
 docker/               nginx config for the Docker image
 public/               Files served as-is (favicon)

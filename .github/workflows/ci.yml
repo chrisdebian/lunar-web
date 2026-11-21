@@ -41,6 +41,8 @@ jobs:
 
       - name: Generate (root, production URL)
         run: yarn generate
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Check links (root)
         run: yarn check-links
@@ -48,6 +50,7 @@ jobs:
       - name: Generate (sub-path, as on GitHub Pages)
         run: yarn generate
         env:
+          GITHUB_TOKEN: ${{ github.token }}
           NUXT_APP_BASE_URL: /${{ github.event.repository.name }}/
           NUXT_PUBLIC_SITE_URL: https://example.org/${{ github.event.repository.name }}/
 

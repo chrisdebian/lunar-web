@@ -1,4 +1,4 @@
-# Publishes a preview of main to the root of the GitHub Pages site on every push to main.
+# Publishes a preview of main to the root of the GitHub Pages site on every push to main, and daily.
 # PR previews (pr-preview.yml) live in pr-preview/ on the same gh-pages branch and are left alone.
 #
 # One-time setup: Settings → Pages → Build and deployment → Source: "Deploy from a branch",
@@ -8,6 +8,9 @@ name: Deploy preview to GitHub Pages
 on:
   push:
     branches: [main]
+  # Daily, so the moonbase arrivals board on the homepage stays fresh
+  schedule:
+    - cron: '23 5 * * *'
   workflow_dispatch:
 
 permissions:
