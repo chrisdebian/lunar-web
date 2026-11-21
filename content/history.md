@@ -99,7 +99,7 @@ Changes poured into the moonbase and ISOs rolled off the launch pad. A few landm
 ::history-chapter{phase="0.625" when="2014–2017"}
 ## Quiet skies?
 
-After 1.7.0 the releases paused, and the public channels went quiet. From the outside it looked as if Lunar had drifted out of orbit. In October 2017 we finally said it out loud: [we are still very much alive](/news/we-are-still-very-much-alive).
+After 1.7.0 the releases paused, and the public channels went quiet. From the outside it looked as if Lunar had drifted out of orbit. In October 2017 we finally said it out loud: [we are still very much alive](/news/2017-10-18-we-are-still-very-much-alive).
 
 And we were. The releases had paused, but the moonbase never did. Here is every year since that first commit, one moon each. The fuller the moon, the more changes landed in the moonbase that year:
 
@@ -141,7 +141,7 @@ Even the quietest full year, 2012, the year of the big split, saw more than 3,00
 ::history-chapter{phase="0.75" when="2018 to today"}
 ## Still in orbit
 
-Since then the tools have changed, the way tools do. IRC [moved to Libera.Chat](/news/moving-to-libera-chat-network) in May 2021. Continuous integration checks contributions, bots help with routine updates, and AI is starting to take on the repetitive parts of maintenance. On this site, the [arrivals board](/#moonbase) shows modules landing in the moonbase as it happens.
+Since then the tools have changed, the way tools do. IRC [moved to Libera.Chat](/news/2021-05-23-we-are-moving-to-libera-chat-network) in May 2021. Continuous integration checks contributions, bots help with routine updates, and AI is starting to take on the repetitive parts of maintenance. On this site, the [arrivals board](/#moonbase) shows modules landing in the moonbase as it happens.
 
 None of that changed what Lunar is.
 ::
