@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 // Validates the Markdown in content/ before a build:
-// - required frontmatter (title, description; `date` as YYYY-MM-DD for news)
+// - required frontmatter (title, description; `date` as YYYY-MM-DD for news, matching the file name)
 // - internal links point at existing content pages (anchors are checked later by check-links)
 // - no relative links (`../foo`), which break depending on the URL's trailing slash
 
-import { readdirSync, readFileSync, statSync } from 'node:fs'
-import { join, relative, sep } from 'node:path'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
+import { basename, join, relative, sep } from 'node:path'
 import process from 'node:process'
 
 const contentDir = 'content'
@@ -41,6 +41,8 @@ for (const file of files) {
   if (file.startsWith(join(contentDir, 'news'))) {
     const date = field('date')
     if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) errors.push(`${file}: \`date\` must be YYYY-MM-DD (got ${date ?? 'nothing'})`)
+    // News files are named YYYY-MM-DD-slug.md, so they list in date order; keep the two in step.
+    else if (!basename(file).startsWith(`${date}-`)) errors.push(`${file}: file name must start with its date (${date}-)`)
   }
 
   // Ignore fenced code blocks when looking for links.
@@ -52,6 +54,8 @@ for (const file of files) {
       continue
     }
     const path = target.split('#')[0].replace(/\/$/, '') || '/'
+    // Images and other static files live in public/
+    if (existsSync(join('public', path)) && statSync(join('public', path)).isFile()) continue
     if (!routes.has(path) && !extraRoutes.has(path)) errors.push(`${file}: link to "${target}" — no page at ${path}`)
   }
 }

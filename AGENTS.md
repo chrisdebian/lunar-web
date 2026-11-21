@@ -30,6 +30,7 @@ docker compose up dev         # dev server in Docker (no local Node), http://loc
 - `content.config.ts`: collections `docs` (`content/docs/**`), `news` (`content/news/*`) and `download` (`content/download.md`; its `featured` frontmatter also feeds the homepage Downloads section) with zod schemas
 - `server/routes/`: `rss.xml`, `sitemap.xml`, `robots.txt`, `search.json`, `moonbase-arrivals.json` (logic in `server/utils/moonbase.ts`); all prerendered
 - `scripts/`: `check-content.mjs` and `check-links.mjs` (content and built-site link validation), `moonbase-feed.mjs` (live arrivals feed)
+- `content/news/`: one file per post, named `YYYY-MM-DD-slug.md` after its `date` (`check-content` enforces it). Posts up to 2023 were imported from the old WordPress site
 
 ## Rules that are easy to break
 
