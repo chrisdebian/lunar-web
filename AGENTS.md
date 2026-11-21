@@ -22,11 +22,12 @@ docker compose up dev         # dev server in Docker (no local Node), http://loc
 
 ## Layout
 
-- `app/pages/`: `index.vue` (homepage from `components/sections/*`), `docs/[...slug].vue`, `news/[...slug].vue`; shared header and footer in `app/layouts/default.vue`
+- `app/pages/`: `index.vue` (homepage from `components/sections/*`), `docs/[...slug].vue`, `news/[...slug].vue`, `download.vue` (renders `content/download.md`); shared header and footer in `app/layouts/default.vue`
+- Navigation: the header lists real places (Docs, News, the homepage's `#community`, and the Get Lunar button to `/download`) and marks the current one with `navCurrent()` (`app/utils/navigation.ts`); every inner page starts with `<Breadcrumb>`, which always begins at Home
 - `app/components/`: registered by **file name only** (`pathPrefix: false`): `<DocCard>`, not `<UiDocCard>`
 - `app/components/content/ProsePre.vue`: overrides Markdown code blocks (copy button). In MDC, `ProsePre` = block, `ProseCode` = inline code
 - `app/composables/`: `useDocsNavigation` (tree for sidebar and breadcrumbs), `useDocSearch` (FlexSearch over `/search.json`), `useSiteLinks` (`withBase`, `absoluteUrl`), `usePageSeo` (title, description, canonical, OG)
-- `content.config.ts`: collections `docs` (`content/docs/**`) and `news` (`content/news/*`) with zod schemas
+- `content.config.ts`: collections `docs` (`content/docs/**`), `news` (`content/news/*`) and `download` (`content/download.md`; its `featured` frontmatter also feeds the homepage Downloads section) with zod schemas
 - `server/routes/`: `rss.xml`, `sitemap.xml`, `robots.txt`, `search.json`, `moonbase-arrivals.json` (logic in `server/utils/moonbase.ts`); all prerendered
 - `scripts/`: `check-content.mjs` and `check-links.mjs` (content and built-site link validation), `moonbase-feed.mjs` (live arrivals feed)
 
