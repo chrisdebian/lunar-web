@@ -51,6 +51,15 @@ export default defineContentConfig({
       schema: z.object({
         headline: z.string()
       })
+    }),
+    // A single page (/about), linked from the footer. Its fact sheet and launch sequence are MDC
+    // components with their data inline.
+    about: defineCollection({
+      type: 'page',
+      source: 'about.md',
+      schema: z.object({
+        headline: z.string()
+      })
     })
   }
 })
