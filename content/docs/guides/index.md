@@ -87,7 +87,7 @@ Learn alternative installation techniques when standard methods won't work:
 ### Official Resources
 
 - [Lunar Linux Website](http://lunar-linux.org/)
-- [Mailing Lists](http://lunar-linux.org/mailing-lists)
+- [Mailing Lists](http://lists.lunar-linux.org/cgi-bin/mailman/listinfo)
 - [IRC Channel: #lunar on Libera.Chat](https://web.libera.chat/#lunar)
 
 ### Third-Party Guides

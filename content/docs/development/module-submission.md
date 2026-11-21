@@ -3,7 +3,7 @@ title: "Module Submission"
 description: "How to submit new or updated modules to the official Lunar Linux moonbase"
 category: "development"
 tags: ["modules", "submission", "contributing", "moonbase"]
-lastUpdated: 2025-11-02
+lastUpdated: 2026-11-21
 order: 3
 ---
 
@@ -14,8 +14,8 @@ The official Moonbase is maintained and updated by the Lunar Linux developers. B
 You have several options when you encounter a missing or outdated module:
 
 1. **Report the problem** via:
-   - Bug Tracker (bugs.lunar-linux.org, no longer available)
-   - [Lunar Mailing-List](http://lunar-linux.org/mailing-lists)
+   - An issue on the module's moonbase repository on [GitHub](https://github.com/lunar-linux)
+   - The [Lunar mailing lists](http://lists.lunar-linux.org/cgi-bin/mailman/listinfo)
    - [#lunar](https://web.libera.chat/#lunar) IRC channel on [Libera.Chat](https://libera.chat/)
    - Hope that someone can help you
 
@@ -28,7 +28,7 @@ You have several options when you encounter a missing or outdated module:
 3. **Share your work:**
    - Maybe other people could benefit from your module
    - Maybe other people could improve your module
-   - Submit it to the Lunar developers so they can decide whether to commit it to the Moonbase
+   - Open a pull request so the Lunar developers can review it and merge it into the Moonbase
 
 ## Acceptance and Rejection Criteria
 
@@ -137,63 +137,64 @@ See [Module Basics](/docs/development/module-basics) for more information.
 
 ## How Do I Submit the Module?
 
+Modules are submitted as pull requests on GitHub. The Moonbase is split across several repositories
+in the [lunar-linux organisation](https://github.com/lunar-linux): `moonbase-core`, `moonbase-other`,
+`moonbase-xorg`, `moonbase-kde`, `moonbase-gnome`, `moonbase-gnome3`, `moonbase-xfce` and
+`moonbase-efl`. Each module lives in exactly one of them.
+
 Once you have successfully installed the module using `lin -rc theModule`:
 
-### Step 1: Subscribe to the Mailing List
+### Step 1: Find the Module's Repository
 
-Subscribe to the [Lunar Mailing-List](http://lunar-linux.org/mailing-lists). Not sure if this is still required, but why not do it now anyway? Other users might have feedback about the module.
+`lvu where theModule` shows the module's section (for example `devel`). Find that section directory in
+one of the moonbase repositories. A brand new module goes in the repository and section that fit it
+best; ask on IRC if you're not sure.
 
-### Step 2: Set Your Email Address
+### Step 2: Fork and Branch
 
-If you haven't already done so, you will need to set your email address for the submission script to work:
+Fork that repository on GitHub, clone your fork and create a branch for your change.
 
-```bash
-lunar set ADMIN your@email.address
-```
+### Step 3: Copy Your Changes In
 
-Or run `lunar` and follow the menus.
+Copy the module files from your zlocal copy (see `lvu edit` above) into the matching directory of
+your clone, then review them with `git diff`.
 
-### Step 3: Submit the Module
+### Step 4: Commit and Open a Pull Request
 
-```bash
-lvu submit theModule
-```
+Commit with a message in the form described below, push the branch to your fork and open a pull
+request against the Lunar repository. Keep each pull request to one module, or to a set of modules that
+have to change together.
 
-Provide a meaningful message (see Note below).
+### Step 5: Wait for Review
 
-### Step 4: Wait for Feedback
-
-You should receive email feedback whether your submission was accepted or the reasons for rejection. Remember that:
+Each pull request is checked automatically by `llint`, Lunar's module linter, where the repository
+has it set up; fix anything it reports. A developer will then review it. Remember that:
 
 - The Lunar development team is quite small
 - They are all working in their spare time and have real lives and other commitments
 - Some submissions require specific hardware/software environments to be able to install and test them properly
 
-## Submission Message Guidelines
+## Commit Message Guidelines
 
-**Important:** The first line of the message will be visible on the online [Submission queue](http://foo-projects.org/~sofar/queue.php).
+Use the form `module: short description` for the first line. If you want to add more context, leave
+one blank line and then write the longer description.
 
-Give the reasons why the module has been updated and what you have changed. This message can then be used directly when submitting the changes to the central moonbase.
-
-### Good Submission Message Examples:
+### Good Commit Message Examples:
 
 ```
-Update foo to version 2.1.3 - fixes security vulnerability
+foo: version bumped to 2.1.3
 
-- Updated VERSION to 2.1.3
-- Added missing dependency on bar
-- Fixed compilation with GCC 11
+Fixes a security vulnerability. Also adds the missing
+dependency on bar.
 ```
 
 ```
-Add new module: baz - network monitoring tool
+baz: new module, a network monitoring tool
 
-- Created DETAILS, DEPENDS, and BUILD
-- Tested on x86_64
-- Optional dependency on gtk+ for GUI
+Tested on x86_64. Optional dependency on gtk+ for the GUI.
 ```
 
-### Poor Submission Message Examples:
+### Poor Commit Message Examples:
 
 ```
 updated
@@ -307,11 +308,11 @@ If you need to include patches:
 
 For an idea of how the developers process submissions, the development team:
 
-1. Reviews submissions in the queue
+1. Reviews pull requests on GitHub
 2. Tests the module if possible
 3. Checks for formatting and guideline compliance
-4. Commits accepted modules to the moonbase
-5. Provides feedback on rejected submissions
+4. Merges accepted pull requests into the moonbase
+5. Comments on pull requests that need changes
 
 Patience is appreciated - the team works on this in their spare time!
 
@@ -320,7 +321,7 @@ Patience is appreciated - the team works on this in their spare time!
 If you have questions about submitting modules:
 
 - Ask on #lunar IRC channel
-- Post to the lunar mailing list
+- Post to the [Lunar mailing lists](http://lists.lunar-linux.org/cgi-bin/mailman/listinfo)
 - Check existing modules for examples
 - Review the documentation
 
