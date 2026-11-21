@@ -45,7 +45,7 @@ describe('summarizeArrivals', () => {
     author: login ? { login } : null,
     commit: {
       message: `${subject}\n\nbody`,
-      author: { name: 'Dennis Veatch' },
+      author: { name: 'Dennis Veatch', email: 'dennis@example.org' },
       committer: { date: new Date(Date.UTC(2026, 10, 20, 12) - minutesAgo * 60_000).toISOString() }
     }
   })
@@ -101,5 +101,69 @@ describe('summarizeArrivals', () => {
   it('credits the commit author name when there is no GitHub login', () => {
     const board = summarizeArrivals([{ repository: 'moonbase-core', commits: [commit('nano: Bump to 8.6.', 1, null)] }], now)
     expect(board.arrivals[0]!.crew).toBe('Dennis Veatch')
+  })
+
+  describe('updates committed by Lunar Bot', () => {
+    // Like atuin 18.25.1 in moonbase-other (859f929): the bot authors it, the person is a co-author
+    const botCommit = (subject: string, minutesAgo: number, coAuthors: string[]): Commit => ({
+      html_url: `https://github.com/lunar-linux/x/commit/${minutesAgo}`,
+      author: null,
+      commit: {
+        message: [subject, '', ...coAuthors.map(person => `Co-authored-by: ${person}`)].join('\n'),
+        author: { name: 'Lunar Bot', email: 'bot@lunar-linux.org' },
+        committer: { date: new Date(Date.UTC(2026, 10, 20, 12) - minutesAgo * 60_000).toISOString() }
+      }
+    })
+    const byAda: Commit = {
+      html_url: 'https://github.com/lunar-linux/x/commit/ada',
+      author: { login: 'adamoon' },
+      commit: {
+        message: 'nano: small tweak',
+        author: { name: 'Ada Moon', email: 'ada@example.org' },
+        committer: { date: '2026-11-19T12:00:00Z' }
+      }
+    }
+    const crewOf = (...commits: Commit[]) =>
+      summarizeArrivals([{ repository: 'moonbase-other', commits }], now).arrivals[0]!.crew
+
+    it('credits the co-author, by the GitHub login their email has on other commits', () => {
+      expect(crewOf(botCommit('atuin: Version bumped to 18.25.1', 1, ['Ada Moon <ada@example.org>']), byAda))
+        .toBe('adamoon')
+    })
+
+    it('matches the email in any letter case, across repositories', () => {
+      const board = summarizeArrivals([
+        { repository: 'moonbase-other', commits: [botCommit('atuin: Version bumped to 18.25.1', 1, ['Ada Moon <Ada@Example.org>'])] },
+        { repository: 'moonbase-core', commits: [byAda] }
+      ], now)
+      expect(board.arrivals[0]!.crew).toBe('adamoon')
+    })
+
+    it('reads the login from a GitHub noreply email', () => {
+      expect(crewOf(botCommit('atuin: Version bumped to 18.25.1', 1, ['Max Crater <12345+maxcrater@users.noreply.github.com>'])))
+        .toBe('maxcrater')
+    })
+
+    it('falls back to the co-author name when the email has no known login', () => {
+      expect(crewOf(botCommit('atuin: Version bumped to 18.25.1', 1, ['Ada Moon <ada@example.org>'])))
+        .toBe('Ada Moon')
+    })
+
+    it('skips bot co-authors', () => {
+      expect(crewOf(botCommit('atuin: Version bumped to 18.25.1', 1, [
+        'Lunar Bot <bot@lunar-linux.org>',
+        'Ada Moon <ada@example.org>'
+      ]), byAda)).toBe('adamoon')
+    })
+
+    it('stays with the bot when nobody co-authored it', () => {
+      expect(crewOf(botCommit('atuin: Version bumped to 18.25.1', 1, []))).toBe('Lunar Bot')
+    })
+
+    it('keeps a person as crew when the bot is only their co-author', () => {
+      const withBot = commit('nano: Bump to 8.7.', 1, 'adamoon')
+      withBot.commit.message += '\n\nCo-authored-by: Lunar Bot <bot@lunar-linux.org>'
+      expect(crewOf(withBot)).toBe('adamoon')
+    })
   })
 })
