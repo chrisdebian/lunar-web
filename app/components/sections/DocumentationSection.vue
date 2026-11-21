@@ -18,19 +18,7 @@
           </p>
         </div>
 
-        <!-- Looks like a field, opens the search dialog -->
-        <button
-          type="button"
-          class="flex w-full items-center gap-3 rounded-lg border border-white/15 bg-gray-950/60 px-4 py-3 text-left text-gray-400 transition-colors hover:border-white/30 hover:text-gray-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-300 sm:w-80"
-          @click="openSearch"
-        >
-          <Icon
-            name="ph:magnifying-glass"
-            class="h-5 w-5 shrink-0"
-          />
-          <span class="flex-1">Search the docs</span>
-          <kbd class="hidden rounded-sm border border-gray-700 bg-gray-800 px-2 py-0.5 text-xs text-gray-500 sm:inline-block">{{ shortcutLabel }}</kbd>
-        </button>
+        <SearchLauncher class="sm:w-80" />
       </div>
 
       <ul class="mt-12 grid border-t border-white/10 md:grid-cols-2 md:gap-x-12 lg:grid-cols-3">
@@ -60,13 +48,6 @@
 </template>
 
 <script setup lang="ts">
-const { open: openSearch } = useSearchDialog()
-const shortcutLabel = ref('Ctrl K')
-
-onMounted(() => {
-  if (/Mac|iPhone|iPad/.test(navigator.platform)) shortcutLabel.value = '⌘K'
-})
-
 // The docs' top-level sections, in sidebar order.
 const { data: sections } = await useAsyncData('home-docs-sections', async () => {
   const docs = await queryCollection('docs').select('title', 'description', 'path', 'order').all()

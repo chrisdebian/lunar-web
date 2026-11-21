@@ -2,7 +2,7 @@
 title: "Lin Basics"
 description: "The everyday commands for installing, finding, updating and removing software on Lunar"
 category: "package-management"
-order: 2
+order: 1
 lastUpdated: 2026-11-21
 tags: [package-management, lin, lvu, lrm, lunar, commands]
 ---

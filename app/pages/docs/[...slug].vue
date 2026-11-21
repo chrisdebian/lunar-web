@@ -98,6 +98,10 @@ if (!data.value) {
 
 const page = computed(() => data.value!)
 
+// Lights up this page on the flight plan (/docs), in this browser only
+const { markVisited } = useVisitedDocs()
+onMounted(() => markVisited(path))
+
 const { data: navigation } = await useDocsNavigation()
 
 // Up to three other pages sharing the most tags with this one.

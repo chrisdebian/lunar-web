@@ -42,6 +42,15 @@ whole animation.
 for iPhone. Test on a real iPhone, and test a cold load in a new private tab (empty cache) as well as a
 reload.
 
+### Revealing a drawing (a path that "draws itself")
+
+Don't animate `stroke-dashoffset` or a mask. Wipe it in with two opposite transforms instead: a
+clipping box (`overflow: hidden`) slides from `translateY(-100%)` to `0` while the drawing inside slides
+from `translateY(100%)` to `0`. The drawing stays put and is uncovered from the top, using transforms
+only. The box itself must clip, or the two transforms cancel out and nothing is hidden. Example: the
+trajectory in `app/pages/docs/index.vue`. For a straight dotted line, sliding the dots in is enough
+(the orbit in `app/pages/news/index.vue`).
+
 ### Related gotcha: `pathLength` with `vector-effect="non-scaling-stroke"`
 
 Don't combine them on a line whose `stroke-dashoffset` you animate. Browsers then compute the dash in

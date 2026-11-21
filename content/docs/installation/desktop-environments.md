@@ -4,7 +4,7 @@ description: "Installing and configuring desktop environments and window manager
 category: "installation"
 tags: ["desktop", "xfce", "kde", "gnome", "window-manager", "gui"]
 lastUpdated: 2025-11-02
-order: 3
+order: 4
 ---
 
 Once you have successfully completed the installation of the ISO and the post-install tasks described in `man lfirsttime`, what you are left with is a pretty minimal installation - this is deliberate!

@@ -2,7 +2,7 @@
 title: "System Requirements"
 description: "Hardware and software requirements for installing Lunar Linux"
 category: "installation"
-order: 2
+order: 1
 lastUpdated: 2025-11-02
 tags: [installation, requirements, hardware]
 seeAlso:

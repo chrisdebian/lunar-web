@@ -3,6 +3,5 @@ title: "Documentation"
 description: "Guides and reference for installing, using and developing Lunar Linux"
 ---
 
-Welcome to the Lunar Linux documentation. Pick a section below to get started, or press the search button in the header to search every page.
-
-Want to help improve the documentation? Read the [contribution guidelines](/docs/contributing).
+<!-- The /docs landing page (the flight plan) is built in app/pages/docs/index.vue from the sections
+     below content/docs/. Only this page's title and description are used. -->
