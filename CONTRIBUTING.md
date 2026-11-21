@@ -47,8 +47,27 @@ Guidelines:
 
 ## News
 
-Articles live in `content/news/` and need `title`, `description` and `date` (`YYYY-MM-DD`). They appear
-on the homepage, at `/news` and in the RSS feed (`/rss.xml`).
+Each article is one file in `content/news/`, named after its publish date and a short slug:
+`content/news/2026-11-21-lunar-1-8-0-released.md`. The name is also the URL
+(`/news/2026-11-21-lunar-1-8-0-released`), and keeps the folder in date order. `yarn check-content`
+fails if the file name doesn't start with the `date` in its frontmatter, so change both together.
+
+```yaml
+---
+title: "Lunar Linux 1.8.0 released"            # required
+description: "One sentence summary"             # required; shown in the list and under the title
+date: 2026-11-21                                # required, YYYY-MM-DD; also picks the moon phase shown
+author: "Ratler"                                # optional; shown as "by Ratler"
+---
+```
+
+Articles appear on the homepage, at `/news` and in the RSS feed (`/rss.xml`). Start sections at `##`
+(the title is rendered from `title`). Images go in `public/images/news/` and are linked as
+`![What it shows](/images/news/name.png)`, with alt text that describes the image.
+
+Once an article is published, don't rename its file: that changes its URL. The posts from the old
+WordPress site also have redirects from their old URLs in `docker/legacy-redirects.conf`, and
+`yarn test` fails if one of those posts is renamed without updating that list.
 
 ## Migrating pages from the old wiki
 
