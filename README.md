@@ -120,6 +120,36 @@ Actions are pinned to full commit SHAs, with the version in a comment. Dependabo
 (`.github/dependabot.yml`) opens one grouped PR a week when any of them has a new release. Its PRs
 run CI but get no preview, like PRs from forks.
 
+### Live moonbase arrivals
+
+The "Arrivals at the moonbase" board on the homepage lists the latest module updates. Every build
+bakes in the data at that moment (`server/routes/moonbase-arrivals.json.ts`). On GitHub Pages it is
+also kept live:
+
+1. Each moonbase repository calls the shared workflow
+   [`lunar-linux/.github`](https://github.com/lunar-linux/.github) `notify-website.yml` on every
+   push to `master`. It sends a `moonbase-updated` signal to this repository.
+2. `.github/workflows/moonbase-feed.yml` (on that signal, hourly as a safety net, or by hand)
+   regenerates `moonbase-arrivals.json` with `scripts/moonbase-feed.mjs` and commits it to
+   `gh-pages`, only when something changed.
+3. The board loads that file in the browser; rows that changed flap in.
+
+Other hosts (the Docker image, PR previews) keep the data from their build.
+
+One-time setup, by an organization owner:
+
+1. Create a fine-grained personal access token: resource owner `lunar-linux`, repository access
+   *only* `lunar-web`, permission *Contents: Read and write* (needed to send the signal). It expires
+   after at most a year; until it's renewed, the hourly run keeps the board fresh.
+2. Store it as an organization secret for the moonbase repositories:
+   ```bash
+   gh secret set MOONBASE_DISPATCH_TOKEN --org lunar-linux \
+     --repos moonbase-core,moonbase-other,moonbase-xorg,moonbase-kde,moonbase-gnome3,moonbase-gnome,moonbase-xfce,moonbase-efl
+   ```
+   (`gh` asks for the value, so the token doesn't end up in your shell history.)
+3. Test it: `gh workflow run moonbase-feed.yml -R lunar-linux/lunar-web` runs the refresh by hand;
+   a push to any moonbase repository should start a "Moonbase feed" run within a minute.
+
 ## Project layout
 
 ```text
@@ -128,7 +158,8 @@ content/docs/         Documentation pages (Markdown)
 content/news/         News articles (Markdown)
 content.config.ts     Content collections and their frontmatter schemas
 server/routes/        rss.xml, sitemap.xml, robots.txt, the search index (search.json) and moonbase-arrivals.json
-scripts/              Content and link checks, the old-wiki import script
+server/utils/         Shared server code (moonbase.ts: the arrivals board data)
+scripts/              Content and link checks, the moonbase feed, the old-wiki import script
 docker/               nginx config for the Docker image
 public/               Files served as-is (favicon)
 ```

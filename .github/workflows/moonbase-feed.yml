@@ -1,0 +1,77 @@
+# Keeps the homepage's moonbase arrivals board fresh on GitHub Pages: regenerates
+# moonbase-arrivals.json and commits it to gh-pages, only when it changed (every push to gh-pages
+# triggers a Pages deployment). The board loads that file in the browser.
+#
+# Triggered by the moonbase repositories on every push to master (repository_dispatch
+# "moonbase-updated", see "Live moonbase arrivals" in README.md), hourly as a safety net, and on
+# demand. No install or build: Node runs the feed script and its TypeScript module directly.
+name: Moonbase feed
+
+on:
+  repository_dispatch:
+    types: [moonbase-updated]
+  schedule:
+    - cron: '41 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write # push to gh-pages
+
+# A burst of moonbase pushes only needs the last refresh
+concurrency:
+  group: moonbase-feed
+  cancel-in-progress: true
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Triggered by
+        env:
+          SOURCE: ${{ github.event.client_payload.repository || github.event_name }}
+        run: echo "$SOURCE"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: |
+            /.nvmrc
+            /scripts/moonbase-feed.mjs
+            /server/utils/moonbase.ts
+          sparse-checkout-cone-mode: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Fetch the latest arrivals
+        run: node scripts/moonbase-feed.mjs "$RUNNER_TEMP/moonbase-arrivals.json"
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: gh-pages
+          path: gh-pages
+          sparse-checkout: /moonbase-arrivals.json
+          sparse-checkout-cone-mode: false
+
+      - name: Publish if anything changed
+        working-directory: gh-pages
+        run: |
+          new="$RUNNER_TEMP/moonbase-arrivals.json"
+          if [ -f moonbase-arrivals.json ] \
+            && [ "$(jq -S 'del(.generatedAt)' moonbase-arrivals.json)" = "$(jq -S 'del(.generatedAt)' "$new")" ]; then
+            echo 'No new arrivals.'
+            exit 0
+          fi
+          cp "$new" moonbase-arrivals.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add moonbase-arrivals.json
+          git commit -q -m "Moonbase arrivals: $(jq -r '.arrivals[0] | "\(.module) \(.version)"' moonbase-arrivals.json)"
+          # Another deployment may have pushed meanwhile
+          for attempt in 1 2 3; do
+            git pull -q --rebase && git push -q && exit 0
+            sleep $((attempt * 5))
+          done
+          exit 1

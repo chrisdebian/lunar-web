@@ -60,7 +60,7 @@
           <ol>
             <li
               v-for="(row, index) in rows"
-              :key="row.module"
+              :key="index"
               class="board-row group relative"
               @mouseenter="rattle(index)"
             >
@@ -112,7 +112,7 @@
 
 <script setup lang="ts">
 type Arrival = { module: string, version: string, gate: string, crew: string, date: string, url: string }
-type Board = { arrivals: Arrival[], total: number, days: number }
+type Board = { arrivals: Arrival[], total: number, days: number, generatedAt?: string }
 type ColumnKey = 'module' | 'version' | 'gate' | 'landed' | 'crew' | 'status'
 type Cells = Record<ColumnKey, string>
 
@@ -141,7 +141,7 @@ const fit = (text: string | undefined, width: number) => {
 
 const { data } = await useFetch<Board>('/moonbase-arrivals.json', {
   key: 'moonbase-arrivals',
-  default: () => ({ arrivals: [], total: 0, days: 30 })
+  default: () => ({ arrivals: [], total: 0, days: 30, generatedAt: '' })
 })
 const board = computed(() => data.value)
 
@@ -162,6 +162,15 @@ const finalCells = (index: number): Cells => {
   }
 }
 
+const blankCells = (): Cells => ({
+  module: ' '.repeat(WIDTH.module),
+  version: ' '.repeat(WIDTH.version),
+  gate: ' '.repeat(WIDTH.gate),
+  landed: ' '.repeat(WIDTH.landed),
+  crew: ' '.repeat(WIDTH.crew),
+  status: ' '.repeat(WIDTH.status)
+})
+
 /*
  * What the tiles currently show. The server renders the final board (so it reads fine without
  * JavaScript); the browser blanks it and lets it flap into place when it scrolls into view.
@@ -180,7 +189,7 @@ const TICK_MS = 55 // flaps change about 18 times a second
 const CHAR_MS = 45 // each next tile in a cell settles this much later
 const randomChar = () => FLAP_CHARS[Math.floor(Math.random() * FLAP_CHARS.length)]!
 
-type Flight = { target: string, start: number, apply: (text: string) => void, done?: () => void }
+type Flight = { target: string, start: number, apply: (text: string) => void, done?: () => void, row?: number }
 const flights = new Set<Flight>()
 let frame = 0
 let lastTick = 0
@@ -208,10 +217,17 @@ const loop = (now: number) => {
   if (flights.size) frame = requestAnimationFrame(loop)
 }
 
-/** Flaps `target` into place, starting to settle after `delay` ms (it rattles for 400 ms first). */
-const flap = (target: string, delay: number, apply: (text: string) => void, done?: () => void) => {
-  flights.add({ target, start: performance.now() + delay + 400, apply, done })
+/**
+ * Flaps `target` into place, starting to settle after `delay` ms (it rattles for 400 ms first).
+ * `row` ties it to a board row, so a new landing on that row can cancel it.
+ */
+const flap = (target: string, delay: number, apply: (text: string) => void, done?: () => void, row?: number) => {
+  flights.add({ target, start: performance.now() + delay + 400, apply, done, row })
   frame ||= requestAnimationFrame(loop)
+}
+
+const cancelRow = (index: number) => {
+  for (const flight of flights) if (flight.row === index) flights.delete(flight)
 }
 
 const setCell = (index: number, key: ColumnKey) => (text: string) => {
@@ -223,23 +239,24 @@ const rowBusy = new Set<number>()
 
 /** The landing sequence for one row: in orbit → descending → landed. */
 const land = (index: number, delay: number) => {
+  cancelRow(index)
   rowBusy.add(index)
   const target = finalCells(index)
   statuses.value[index] = 'orbit'
-  flap(fit(STATUS.orbit, WIDTH.status), delay - 300, setCell(index, 'status'))
-  flap(target.module, delay, setCell(index, 'module'))
-  flap(target.version, delay + 250, setCell(index, 'version'))
-  flap(target.gate, delay + 400, setCell(index, 'gate'))
-  flap(target.crew, delay + 450, setCell(index, 'crew'))
+  flap(fit(STATUS.orbit, WIDTH.status), delay - 300, setCell(index, 'status'), undefined, index)
+  flap(target.module, delay, setCell(index, 'module'), undefined, index)
+  flap(target.version, delay + 250, setCell(index, 'version'), undefined, index)
+  flap(target.gate, delay + 400, setCell(index, 'gate'), undefined, index)
+  flap(target.crew, delay + 450, setCell(index, 'crew'), undefined, index)
   flap(target.landed, delay + 550, setCell(index, 'landed'), () => {
     statuses.value[index] = 'descending'
     flap(fit(STATUS.descending, WIDTH.status), -400, setCell(index, 'status'), () => {
       flap(target.status, -350, setCell(index, 'status'), () => {
         statuses.value[index] = 'landed'
         rowBusy.delete(index)
-      })
-    })
-  })
+      }, index)
+    }, index)
+  }, index)
 }
 
 /** Hovering a row makes it flap again (module and version only, it has already landed). */
@@ -247,8 +264,8 @@ const rattle = (index: number) => {
   if (rowBusy.has(index) || !started) return
   rowBusy.add(index)
   const target = finalCells(index)
-  flap(target.module, -200, setCell(index, 'module'))
-  flap(target.version, -100, setCell(index, 'version'), () => rowBusy.delete(index))
+  flap(target.module, -200, setCell(index, 'module'), undefined, index)
+  flap(target.version, -100, setCell(index, 'version'), () => rowBusy.delete(index), index)
 }
 
 const updateClock = (animate: boolean) => {
@@ -276,26 +293,69 @@ const start = () => {
   })
 }
 
+/*
+ * Live updates. The page ships with the arrivals from build time; on GitHub Pages the
+ * moonbase-feed workflow republishes /moonbase-arrivals.json whenever a module lands. Load it, and
+ * if it's newer use it: before the board has played, it plays the new data; after, only the rows
+ * that changed flap in. Any failure keeps the build-time board.
+ */
+const { withBase } = useSiteLinks()
+let reducedMotion = false
+
+const sameArrival = (a?: Arrival, b?: Arrival) =>
+  !!a && !!b && a.module === b.module && a.version === b.version && a.date === b.date
+
+const loadLive = async () => {
+  let live: Board
+  try {
+    // The query changes every minute, so a cached copy at the CDN is at most a minute old
+    live = await $fetch<Board>(withBase('/moonbase-arrivals.json'), { query: { t: Math.floor(Date.now() / 60_000) } })
+  } catch {
+    return
+  }
+  if (!live?.arrivals?.length || (live.generatedAt ?? '') <= (board.value.generatedAt ?? '')) return
+
+  const before = board.value.arrivals
+  data.value = live
+
+  if (reducedMotion) {
+    shown.value = rows.value.map((_, index) => finalCells(index))
+    statuses.value = rows.value.map(() => 'landed')
+    shownTotal.value = totalText.value
+  } else if (!started) {
+    shown.value = rows.value.map(blankCells)
+    statuses.value = rows.value.map(() => 'orbit')
+    shownTotal.value = ' '.repeat(totalText.value.length)
+  } else {
+    shown.value = rows.value.map((_, index) => shown.value[index] ?? blankCells())
+    statuses.value = rows.value.map((_, index) => statuses.value[index] ?? 'orbit')
+    let changed = 0
+    rows.value.forEach((_, index) => {
+      if (!sameArrival(before[index], live.arrivals[index])) land(index, changed++ * ROW_STAGGER_MS)
+    })
+    if (shownTotal.value !== totalText.value) {
+      flap(totalText.value, changed * ROW_STAGGER_MS, (text) => {
+        shownTotal.value = text
+      })
+    }
+  }
+}
+
 onMounted(() => {
-  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   updateClock(false)
   clockTimer = setInterval(() => updateClock(!reducedMotion), 5000)
   if (reducedMotion || !section.value) {
     started = true
+    loadLive()
     return
   }
 
   // Blank board, waiting for arrivals
-  shown.value = rows.value.map(() => ({
-    module: ' '.repeat(WIDTH.module),
-    version: ' '.repeat(WIDTH.version),
-    gate: ' '.repeat(WIDTH.gate),
-    landed: ' '.repeat(WIDTH.landed),
-    crew: ' '.repeat(WIDTH.crew),
-    status: ' '.repeat(WIDTH.status)
-  }))
+  shown.value = rows.value.map(blankCells)
   statuses.value = rows.value.map(() => 'orbit')
   shownTotal.value = ' '.repeat(totalText.value.length)
+  loadLive()
 
   observer = new IntersectionObserver((entries) => {
     if (entries.some(entry => entry.isIntersecting)) {
