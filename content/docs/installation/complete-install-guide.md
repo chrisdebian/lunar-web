@@ -29,9 +29,9 @@ The installer allows you to do pretty much everything you want to do with your s
 
 ## Getting the ISO
 
-The primary site for retrieving the ISO is [lunar-linux.org](http://www.lunar-linux.org/). There, you will find links to our US, EU, and Internet2 mirrors, as well as a Bittorrent link.
+The primary site for retrieving the ISO is [lunar-linux.org](https://www.lunar-linux.org/lunar/daily/).
 
-As of this writing, the current version of the Lunar ISO is version 1.6.5-rc1, codename Mare Ingenii (20100709). (Check the main site for the actual latest version!)
+As of this writing, the current version of the Lunar ISO is version 1.8.0, codename Mare Nubium (2025-2026). (Check the main site for the actual latest version!)
 
 Locate and retrieve the file:
 - `lunar-1.6.5-rc1-i686.iso.bz2` for 32-bit systems
