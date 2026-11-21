@@ -71,11 +71,21 @@ Let's assume that you have found that theModule no longer downloads and installs
 
 ### Step 1: Copy the Module to zlocal
 
+Modules in zlocal only take the place of the moonbase copy when zlocal overrides are on. Turn them on
+once:
+
+```bash
+lunar set ZLOCAL_OVERRIDES on
+```
+
+Then copy the module:
+
 ```bash
 lvu edit theModule
 ```
 
-This copies the existing theModule files to zlocal.
+This copies the existing theModule files to zlocal. (Without the setting, `lvu edit` stops with
+"Cannot edit modules when ZLOCAL_OVERRIDES == off".)
 
 ### Step 2: Navigate to the Module Directory
 
