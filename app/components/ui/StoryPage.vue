@@ -5,7 +5,7 @@
 -->
 <template>
   <div class="px-6 pt-10 pb-24">
-    <div class="container mx-auto max-w-4xl">
+    <div class="container mx-auto max-w-5xl">
       <Breadcrumb :items="[{ label: crumb, path: page.path }]" />
 
       <header class="mt-10 max-w-2xl">
