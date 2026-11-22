@@ -97,7 +97,7 @@ The crew requirements are short:
 - You're comfortable at a shell prompt, or you'd like to be.
 - You'd rather understand your system than have it guess for you.
 - You enjoy choosing what goes on your machine.
-- You don't mind waiting while big programs compile. A browser takes a while; consider it a coffee break.
+- You don't mind waiting while big programs compile. A browser takes [about half an hour on eight cores](/docs/guides/build-times#measured-on-our-build-server); consider it a coffee break.
 
 If that sounds like you, welcome aboard. If you'd rather never meet a compiler, there are excellent binary distributions out there, and no hard feelings.
 

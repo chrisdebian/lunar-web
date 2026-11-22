@@ -1,6 +1,6 @@
 ---
 title: "Understanding Build Times"
-description: "Guide to estimating compilation times for Lunar Linux packages"
+description: "How long Lunar takes to compile things, measured on our build server, and how to make it faster"
 category: "guides"
 tags: ["build", "compilation", "performance", "timing"]
 order: 2
@@ -8,257 +8,124 @@ order: 2
 
 One of the most common questions from new Lunar users is: "How long does it take to compile X?" Since Lunar Linux is a source-based distribution, understanding build times helps you plan installations and system updates.
 
-## The Short Answer
+## Measured on our build server
 
-Build times vary dramatically based on:
-- Your hardware (CPU, RAM, disk speed)
-- The package being compiled
-- System load during compilation
-- Compiler optimizations selected
+Every module update sent to moonbase is compiled by our CI server before it's merged. These times come from real CI runs in November 2026:
 
-A modern system might compile a complete desktop environment in 2-3 hours, while an older system could take 20+ hours for the same task.
+| Module                     | What it is         | Compile time |
+|----------------------------|--------------------|--------------|
+| flex 2.6.15                | Small C tool       | 18 seconds   |
+| pkgconf 3.0.11             | Small C tool       | 20 seconds   |
+| atuin 18.25.1              | Rust program       | 6 min 38 s   |
+| llvm, clang and lld 23.1.5 | Compiler toolchain | 27 min 23 s  |
+| firefox 160.0              | Web browser        | 32 min 39 s  |
 
-## Factors Affecting Build Time
+**The machine:** a virtual machine with 8 cores of an AMD Ryzen 9 7940HX (up to 4.8 GHz), 12 GB of memory for the build, an NVMe SSD, and 8 parallel make jobs.
 
-### CPU Speed
+Each time covers one module only, not the dependencies it pulled in. Installing Firefox from scratch built 23 other modules first (nss, pulseaudio, libvpx and friends), which added about six and a half minutes. The toolchain run built clang twice, so the toolchain alone is a bit faster than shown. Small tools finish in seconds, which is why most of a `lunar update` goes by quickly; a few big programs take nearly all the time.
 
-Double the CPU frequency, and you roughly double compilation speed. A 3 GHz processor compiles approximately twice as fast as a 1.5 GHz processor.
+## What makes a build faster
 
-**CPU cores matter even more:** A quad-core system with parallel builds enabled can be 3-4x faster than a single-core system.
+- **Cores, used in parallel.** Most modules split their build across every core you let them use (see [parallel make jobs](#use-every-core) below). This is the biggest single factor.
+- **Memory.** C++ programs such as Firefox and LLVM need a lot of it, especially with many parallel jobs. When memory runs out, the build slows to a crawl or fails.
+- **The disk.** Big builds unpack and write gigabytes of files, so a fast SSD helps.
+- **Idle time.** Every second the machine spends on something else is a second it isn't compiling.
+- **The module itself.** Two programs with the same amount of source code can take very different times to build. gcc, for example, builds itself several times over to check that it works.
 
-### Memory Size
+## How long did it take on my machine?
 
-Compilation, especially for C++ applications, requires substantial memory. Memory impact on build speed:
-
-- **128 MB → 512 MB:** ~225% faster (2.25x)
-- **512 MB → 1 GB:** ~50% faster (1.5x)
-- **1 GB → 2 GB:** ~25% faster (1.25x)
-
-**Recommendation:** 2 GB minimum for comfortable compilation; 4 GB+ for large packages like browsers and desktop environments.
-
-### Disk Speed
-
-I/O operations significantly impact build times, especially for large packages:
-
-- **SATA SSD:** Fastest (500+ MB/s)
-- **SATA HDD:** Good (100-150 MB/s)
-- **ATA-133:** Moderate (50-100 MB/s)
-- **ATA-33:** Slow (20-30 MB/s)
-
-Modern NVMe SSDs can reduce build times by 20-30% compared to traditional HDDs.
-
-### System Idle Time
-
-Every second your system spends on other tasks reduces compilation throughput. For fastest builds:
-
-- Compile on a dedicated system or during low-usage periods
-- Minimize interactive applications during compilation
-- Disable unnecessary background services
-
-### Parallel Make Jobs
-
-**Critical for multi-core systems:** Enable parallel builds in Lunar:
+Lunar keeps a log of every build, and the log starts and ends with a timestamp:
 
 ```bash
-lunar
-# Navigate to: Options → Optimize Architecture
-# Set "Number of parallel makes" to your CPU core count
+lvu compile nano
 ```
 
-**Example impact on quad-core system:**
-- 1 parallel job: 100% (baseline)
-- 2 parallel jobs: ~170% faster
-- 4 parallel jobs: ~250-300% faster
+The first line reads `++ Mark Compile start` and the last `++ Mark Compile stop`, each with the date and time. The difference is how long the module took on your machine.
 
-### Distributed Compilation (distcc)
+## Saving time
 
-If you have multiple computers, `distcc` can distribute compilation across machines, dramatically reducing build times.
+### Use every core
 
-## Benchmark Data
+Open the `lunar` menu, go to **Optimize Architecture**, then **GNU make**, and enter the number of parallel make jobs. Your core count is a good start; `nproc` prints it.
 
-The following benchmarks are from a Pentium 4 system (circa 2005) running at 2.9 GHz with 1 GB RAM (5864 bogomips):
-
-| Module  | Source Size | Installed Size | Compile Time |
-|---------|------------|----------------|--------------|
-| gcc     | 61,540 KB  | 97,188 KB      | 80m 35s      |
-| glibc   | 15,340 KB  | 138,268 KB     | 32m 47s      |
-| gtk+-2  | 18,672 KB  | 64,884 KB      | 15m 56s      |
-| perl    | 14,792 KB  | 56,844 KB      | 9m 43s       |
-
-**Note:** These are historical reference points. Modern equivalents compile faster on current hardware but may have grown in size and complexity.
-
-## Estimating Compilation Time
-
-### Rule of Thumb
-
-Based on analysis of 400+ packages, there's a loose correlation between source size and compile time:
-
-**Average compilation speed:** ~20-25 KB/s of compressed source code
-
-**Formula:**
-```
-Estimated Time (seconds) = Source Size (KB) / 20
-```
-
-**Example:**
-- 10 MB source tarball = 10,000 KB / 20 = 500 seconds = ~8 minutes
-- 50 MB source tarball = 50,000 KB / 20 = 2,500 seconds = ~42 minutes
-
-**Important:** This is a very rough estimate. Actual times can vary by 300% or more depending on the package.
-
-### Module Complexity Index
-
-Some packages compile faster or slower than their size suggests. Here are "complexity indices" for common packages (relative to average 1.0):
-
-- **gcc:** 0.51 (slower than average - bootstrap complexity)
-- **glibc:** 0.31 (slower than average - extensive testing)
-- **gtk+-2:** 0.80 (close to average)
-- **perl:** 1.02 (average)
-
-Multiply your estimate by the complexity index for better accuracy.
-
-### Large Package Examples
-
-Modern large packages and estimated times (4-core 3.0 GHz system, 8GB RAM):
-
-- **Firefox/Chromium:** 30-60 minutes
-- **LibreOffice:** 1-2 hours
-- **LLVM/Clang:** 45-90 minutes
-- **Qt5:** 1-2 hours
-- **KDE Plasma:** 2-4 hours (full desktop)
-- **GNOME:** 2-4 hours (full desktop)
-
-## Real-World Installation Times
-
-Time to install a minimal desktop system from Lunar 1.6.5 ISO:
-
-### Modern System (2009)
-**Hardware:**
-- CPU: 4 cores × 4988 bogomips
-- RAM: 6 GB
-- Disk: 1681 / 129 MB/s
-
-**Installation breakdown:**
-- ISO install: 11 minutes
-- `lin gcc glibc gcc bash coreutils tar wget`: 1 hour 1 minute
-- `lin linux-2.6` (kernel): 12 minutes
-- `lunar update`: 20 minutes
-- `lin XOrg7`: 23 minutes
-- `lin xfce4`: 14 minutes
-- **Total:** 2 hours 21 minutes
-
-### Legacy System (2000)
-**Hardware:**
-- CPU: 1 core × 1600 bogomips
-- RAM: 512 MB
-- Disk: 179 / 17 MB/s
-
-**Installation breakdown:**
-- ISO install: 18 minutes
-- Core system rebuild: 11 hours 26 minutes
-- Kernel compilation: 3 hours 37 minutes
-- System update: 2 hours 44 minutes
-- X11 installation: 3 hours 12 minutes
-- Desktop environment: 2 hours 15 minutes
-- **Total:** 23 hours 32 minutes
-
-**Conclusion:** Avoid installing Lunar on very old hardware unless you have patience or can use `distcc`.
-
-## Optimizing Build Times
-
-### Enable Parallel Builds
-
-```bash
-lunar
-# Options → Optimize Architecture → Number of parallel makes
-# Set to your CPU core count (check with: nproc)
-```
-
-### Use Compiler Cache (ccache)
+### Cache compiler results
 
 ```bash
 lin ccache
-lunar set CCACHE_DIR=/var/cache/ccache
 ```
 
-Ccache can reduce rebuild times by 50-90% for previously compiled code.
+Once ccache is installed, Lunar uses it automatically. Rebuilding a module you've built before (after changing an option, say) reuses whatever hasn't changed. You can turn it off in the `lunar` menu under **Optimize Architecture**, **Compiler Cache**.
 
-### Optimize Compilation Flags
-
-Balance speed vs. build time:
-- `-O2`: Best balance (recommended)
-- `-O3`: Slightly faster binaries, 10-20% longer compile
-- `-Os`: Smaller binaries, faster compile
-
-### Pre-download Sources
-
-Before starting a large build session:
+### Answer the questions and download first
 
 ```bash
-# Download all sources first
-lin --download-only package-name
-
-# Or for complete dependency tree
-lin --download-only --deps package-name
+lin -g firefox
 ```
 
-This prevents build interruptions from slow downloads.
+`-g` (or `--download`) asks every configuration question, works out the dependencies and downloads all the sources, without compiling anything. Run the real `lin firefox` afterwards and it can work unattended.
 
-## Tips for Patience
-
-### Work Estimation
-
-Before a major system update:
+### See what an update will rebuild
 
 ```bash
-# See what will be rebuilt
-lunar update --dry-run
-
-# Check source sizes
-ls -lh /var/spool/lunar/
+lvu expired
 ```
 
-### Background Compilation
+This lists every installed module with a newer version in moonbase: everything `lunar update` would rebuild.
 
-Run long compilations in `screen` or `tmux` so you can disconnect:
+### Run long builds in screen or tmux
+
+Big builds take a while. Start them inside `screen` or `tmux` so they keep going if your terminal or SSH connection closes:
 
 ```bash
-screen
-lin large-package
-# Press Ctrl+A, then D to detach
+tmux
+lin firefox
+# Press Ctrl+B, then D to detach; tmux attach brings it back
 ```
 
-### Overnight Builds
+## History: the 2005 numbers
 
-Schedule large compilations for overnight:
+The first version of this guide was the "How long" page on the old Lunar wiki, last edited in September 2010. Its numbers are kept here as they were, for perspective. ([Archived copy](https://web.archive.org/web/20101225105918/http://wiki.lunar-linux.org:80/index.php/How_long))
 
-```bash
-# In a screen session
-lin kde-full && lin libreoffice && shutdown -h now
-```
+### A Pentium 4 from 2005
 
-## Monitoring Build Progress
+A Pentium 4 at 2.9 GHz with 1 GB of memory, rated at 5864 bogomips, "a fairly normal system back in 2005":
 
-### Watch Compilation
+| Module | Source size | Installed size | Compile time |
+|--------|-------------|----------------|--------------|
+| gcc    | 61,540 KB   | 97,188 KB      | 80m 35s      |
+| glibc  | 15,340 KB   | 138,268 KB     | 32m 47s      |
+| gtk+-2 | 18,672 KB   | 64,884 KB      | 15m 56s      |
+| perl   | 14,792 KB   | 56,844 KB      | 9m 43s       |
 
-```bash
-# In another terminal
-tail -f /var/log/lunar/compile/module-name*.log
-```
+The glibc build included all possible locales, and gcc spends almost half its time in its bootstrap phase.
 
-### Check System Load
+### Estimating from source size
 
-```bash
-# Monitor CPU and memory
-htop
+Across the 400-odd modules installed on that machine, compile time loosely followed the size of the compressed source: about 20 KB of source per second, or 24.8 KB/s on average. The page also gave each module an "index", its own speed divided by the average:
 
-# Check I/O
-iotop
-```
+- **gcc:** 0.51
+- **glibc:** 0.31
+- **gtk+-2:** 0.80
+- **perl:** 1.02
 
-### Estimated Time Remaining
+Building everything in moonbase, then about 3,600 modules and 15 GB of source, would have taken more than 8 days at that speed.
 
-Unfortunately, Lunar doesn't provide real-time build time estimates. Use the formulas above for rough predictions.
+### From ISO to desktop with Lunar 1.6.5
+
+A "minimal" desktop installed from scratch on two machines: a then-new Acer AX5810 and a 9-year-old Vaio FX401. Times are hours and minutes:
+
+| Step                                        | Acer AX5810                                  | Vaio FX401                                   |
+|---------------------------------------------|----------------------------------------------|----------------------------------------------|
+| Hardware                                    | 4 cores × 4988 bogomips, 6 GB, 129 MB/s disk | 1 core × 1600 bogomips, 512 MB, 17 MB/s disk |
+| Install from the ISO                        | 0:11                                         | 0:18                                         |
+| `lin gcc glibc gcc bash coreutils tar wget` | 1:01                                         | 11:26                                        |
+| `lin linux-2.6`                             | 0:12                                         | 3:37                                         |
+| `lunar update`                              | 0:20                                         | 2:44                                         |
+| `lin XOrg7`                                 | 0:23                                         | 3:12                                         |
+| `lin xfce4`                                 | 0:14                                         | 2:15                                         |
+| **Total**                                   | **2:21**                                     | **23:32**                                    |
+
+The wiki's verdict still holds: "you probably don't want to install Lunar on really old hardware, unless you have a lot of patience, or can use distcc."
 
 ## See Also
 
