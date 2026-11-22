@@ -15,7 +15,11 @@ const cachedArrivals = defineCachedFunction(
 
 export default defineEventHandler(async (): Promise<MoonbaseArrivals> => {
   try {
-    return await cachedArrivals()
+    const [board, index] = await Promise.all([cachedArrivals(), loadMoonbaseIndex()])
+    return {
+      ...board,
+      arrivals: board.arrivals.map(arrival => (moonbaseHasModule(index, arrival.module) ? { ...arrival, page: true as const } : arrival))
+    }
   } catch (error) {
     console.warn(`[moonbase-arrivals] GitHub unavailable, leaving the board out: ${(error as Error).message}`)
     return { arrivals: [], total: 0, days: 30, generatedAt: new Date().toISOString() }

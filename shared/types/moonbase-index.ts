@@ -101,6 +101,46 @@ export type MoonbaseRepository = {
   date: string
 }
 
+/* ---- Views of the index for the /modules pages (server/utils/moonbaseViews.ts) ---- */
+
+/** Enough to list a module: the search file, section pages, a module's neighbours. */
+export type ModuleSummary = {
+  name: string
+  version: string | null
+  section: string
+  short: string | null
+  crater?: true
+  beta?: true
+}
+
+export type ModuleSection = {
+  name: string
+  count: number
+  /** The section's most depended-on modules, as a taste of what's in it */
+  highlights: string[]
+}
+
+export type MoonbaseOverview = {
+  generatedAt: string | null
+  total: number
+  sections: ModuleSection[]
+}
+
+export type ModuleSectionPage = {
+  section: string
+  modules: ModuleSummary[]
+}
+
+export type ModulePage = {
+  /** When the index was built */
+  generatedAt: string | null
+  module: MoonbaseModule
+  /** Every module this page mentions (dependencies, dependents, providers), by name */
+  related: Record<string, ModuleSummary>
+  /** Providers of the aliases this module depends on */
+  aliases: Record<string, string[]>
+}
+
 export type MoonbaseIndex = {
   version: typeof MOONBASE_INDEX_VERSION
   /** ISO date, or null for the empty index used when no data is available */

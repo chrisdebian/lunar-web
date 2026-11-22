@@ -135,13 +135,19 @@ watch(() => route.fullPath, () => {
 // Real places only, plus the community spot on the homepage. Downloads is the button.
 const navLinks: NavLink[] = [
   { label: 'Docs', to: '/docs' },
+  { label: 'Modules', to: '/modules' },
   { label: 'News', to: '/news' },
   { label: 'Community', to: '/#community' }
 ]
 
 // The logo's hover label doesn't exist on touch screens, so the mobile menu spells "Home" out.
 // Every row gets an icon so the labels line up.
-const mobileIcons: Record<string, string> = { '/docs': 'ph:book-open', '/news': 'ph:newspaper', '/#community': 'ph:chats-circle' }
+const mobileIcons: Record<string, string> = {
+  '/docs': 'ph:book-open',
+  '/modules': 'ph:package',
+  '/news': 'ph:newspaper',
+  '/#community': 'ph:chats-circle'
+}
 const mobileLinks: NavLink[] = [
   { label: 'Home', to: '/', icon: 'ph:house' },
   ...navLinks.map(link => ({ ...link, icon: mobileIcons[link.to] }))

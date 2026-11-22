@@ -20,17 +20,26 @@
             compiles them for your machine.
           </p>
         </div>
-        <p class="flex items-center gap-3 text-sm text-gray-400">
-          <span
-            class="flaps text-base"
-            aria-hidden="true"
-          ><span
-            v-for="(char, i) in shownTotal"
-            :key="i"
-            class="flap"
-          >{{ char }}</span></span>
-          <span><span class="sr-only">{{ board.total }} </span>updates in the last {{ board.days }} days</span>
-        </p>
+        <div class="flex flex-col items-start gap-3 sm:items-end">
+          <p class="flex items-center gap-3 text-sm text-gray-400">
+            <span
+              class="flaps text-base"
+              aria-hidden="true"
+            ><span
+              v-for="(char, i) in shownTotal"
+              :key="i"
+              class="flap"
+            >{{ char }}</span></span>
+            <span><span class="sr-only">{{ board.total }} </span>updates in the last {{ board.days }} days</span>
+          </p>
+          <!-- This board previews /modules, so it links there, like News and Downloads link to theirs -->
+          <NuxtLink
+            to="/modules"
+            class="font-medium text-indigo-300 transition-colors hover:text-white"
+          >
+            Browse the moonbase
+          </NuxtLink>
+        </div>
       </div>
 
       <!-- The board. Tiles are decoration; each row carries its text for screen readers. -->
@@ -62,16 +71,18 @@
               v-for="(row, index) in rows"
               :key="index"
               class="board-row group relative"
-              @mouseenter="rattle(index)"
             >
-              <!-- The whole row is the link: z-10 keeps it above the tiles, which are positioned (`.flap`) -->
-              <a
-                :href="row.url"
+              <!--
+                The whole row is the link: z-10 keeps it above the tiles, which are positioned (`.flap`).
+                It opens the module's page when this build has one, else the commit on GitHub.
+              -->
+              <NuxtLink
+                :to="hasPage(row) ? modulePath(row.module) : row.url"
                 :title="`${row.module} ${row.version}`"
                 class="absolute inset-0 z-10 rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-300"
               >
                 <span class="sr-only">{{ row.module }} {{ row.version }}, landed in moonbase-{{ row.gate }} <template v-if="row.crew">by {{ row.crew }} </template>on {{ row.landed }}</span>
-              </a>
+              </NuxtLink>
               <span
                 v-for="column in COLUMNS"
                 :key="column.key"
@@ -112,7 +123,7 @@
 </template>
 
 <script setup lang="ts">
-type Arrival = { module: string, version: string, gate: string, crew: string, date: string, url: string }
+type Arrival = { module: string, version: string, gate: string, crew: string, date: string, url: string, page?: boolean }
 type Board = { arrivals: Arrival[], total: number, days: number, generatedAt?: string }
 type ColumnKey = 'module' | 'version' | 'gate' | 'landed' | 'crew' | 'status'
 type Cells = Record<ColumnKey, string>
@@ -134,17 +145,17 @@ const WIDTH = Object.fromEntries(COLUMNS.map(column => [column.key, column.width
 const STATUS = { orbit: 'In orbit', descending: 'Descending', landed: 'Landed' } as const
 type Status = keyof typeof STATUS
 
-/** Pads (or truncates with "…") to exactly `width` characters, like a fixed row of flaps. */
-const fit = (text: string | undefined, width: number) => {
-  const value = text ?? '' // a missing field leaves blank tiles, not a broken board
-  return value.length > width ? `${value.slice(0, width - 1)}…` : value.padEnd(width, ' ')
-}
+const fit = fitFlaps
 
 const { data } = await useFetch<Board>('/moonbase-arrivals.json', {
   key: 'moonbase-arrivals',
   default: () => ({ arrivals: [], total: 0, days: 30, generatedAt: '' })
 })
 const board = computed(() => data.value)
+
+// Modules with a page on this build (from the build-time board; the live feed can't know)
+const withPages = new Set(data.value.arrivals.filter(arrival => arrival.page).map(arrival => arrival.module))
+const hasPage = (arrival: Arrival) => !!arrival.page || withPages.has(arrival.module)
 
 const rows = computed(() => board.value.arrivals.map(arrival => ({
   ...arrival,
@@ -183,53 +194,9 @@ const totalText = computed(() => String(board.value.total))
 const shownTotal = ref(totalText.value)
 const clock = ref('--:--')
 
-/* ---- Split-flap engine: tiles show random characters until their moment to settle ---- */
+/* ---- Split-flap engine (composables/useSplitFlap.ts); each flight is tagged with its row ---- */
 
-const FLAP_CHARS = 'abcdefghijklmnopqrstuvwxyz0123456789.-+'
-const TICK_MS = 55 // flaps change about 18 times a second
-const CHAR_MS = 45 // each next tile in a cell settles this much later
-const randomChar = () => FLAP_CHARS[Math.floor(Math.random() * FLAP_CHARS.length)]!
-
-type Flight = { target: string, start: number, apply: (text: string) => void, done?: () => void, row?: number }
-const flights = new Set<Flight>()
-let frame = 0
-let lastTick = 0
-
-const loop = (now: number) => {
-  frame = 0
-  if (now - lastTick >= TICK_MS) {
-    lastTick = now
-    for (const flight of flights) {
-      let settled = 0
-      const text = [...flight.target].map((char, i) => {
-        if (now >= flight.start + i * CHAR_MS) {
-          settled++
-          return char
-        }
-        return now < flight.start - 400 ? ' ' : randomChar()
-      }).join('')
-      flight.apply(text)
-      if (settled === flight.target.length) {
-        flights.delete(flight)
-        flight.done?.()
-      }
-    }
-  }
-  if (flights.size) frame = requestAnimationFrame(loop)
-}
-
-/**
- * Flaps `target` into place, starting to settle after `delay` ms (it rattles for 400 ms first).
- * `row` ties it to a board row, so a new landing on that row can cancel it.
- */
-const flap = (target: string, delay: number, apply: (text: string) => void, done?: () => void, row?: number) => {
-  flights.add({ target, start: performance.now() + delay + 400, apply, done, row })
-  frame ||= requestAnimationFrame(loop)
-}
-
-const cancelRow = (index: number) => {
-  for (const flight of flights) if (flight.row === index) flights.delete(flight)
-}
+const { flap, cancel: cancelRow } = useSplitFlap()
 
 const setCell = (index: number, key: ColumnKey) => (text: string) => {
   shown.value[index]![key] = text
@@ -258,15 +225,6 @@ const land = (index: number, delay: number) => {
       }, index)
     }, index)
   }, index)
-}
-
-/** Hovering a row makes it flap again (module and version only, it has already landed). */
-const rattle = (index: number) => {
-  if (rowBusy.has(index) || !started) return
-  rowBusy.add(index)
-  const target = finalCells(index)
-  flap(target.module, -200, setCell(index, 'module'), undefined, index)
-  flap(target.version, -100, setCell(index, 'version'), () => rowBusy.delete(index), index)
 }
 
 const updateClock = (animate: boolean) => {
@@ -370,8 +328,6 @@ onMounted(() => {
 onBeforeUnmount(() => {
   observer?.disconnect()
   clearInterval(clockTimer)
-  cancelAnimationFrame(frame)
-  flights.clear()
 })
 </script>
 
@@ -483,41 +439,7 @@ onBeforeUnmount(() => {
   gap: 0.4rem;
 }
 
-/* A row of split-flap tiles */
-.flaps {
-  display: inline-flex;
-  gap: var(--gap, 0.06em);
-}
-
-.flap {
-  position: relative;
-  display: inline-grid;
-  place-items: center;
-  width: var(--tile, 0.82em);
-  height: 1.65em;
-  border-radius: 2px;
-  background: linear-gradient(to bottom, #1c2244 0 50%, #171c3a 50% 100%);
-  box-shadow: inset 0 -1px 0 rgb(0 0 0 / 0.45), 0 1px 0 rgb(255 255 255 / 0.03);
-  /* Inter, semibold: much easier to read in small tiles than a thin monospace */
-  color: var(--color-indigo-50);
-  font-weight: 600;
-  line-height: 1;
-  white-space: pre;
-  /* Keeps the split line below behind the character */
-  isolation: isolate;
-}
-
-/* The split between the two halves of a flap, behind the character */
-.flap::after {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  inset-inline: 0;
-  top: 50%;
-  height: 1px;
-  background: rgb(3 7 18 / 0.8);
-}
-
+/* Tiles: the global .flaps/.flap styles in main.css */
 .flap.is-orbit {
   color: var(--color-purple-300);
 }

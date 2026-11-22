@@ -31,6 +31,11 @@ export type Arrival = {
   crew: string
   date: string
   url: string
+  /**
+   * The module has a page on this build of the site (/modules/<module>). Set by the prerendered
+   * route only: the live feed doesn't know the site's module index.
+   */
+  page?: true
 }
 
 export type MoonbaseArrivals = {

@@ -90,7 +90,7 @@ for (const file of htmlFiles) {
 
   for (const [, rawAttr, rawValue] of html.matchAll(/\s(href|src)="([^"]*)"/g)) {
     const value = decode(rawValue).trim()
-    if (!value || /^(mailto|tel|javascript|data|irc|ircs):/i.test(value)) continue
+    if (!value || /^(mailto|tel|javascript|data|irc|ircs|ftp|ftps|git|ssh):/i.test(value)) continue
 
     if (value === '#') {
       placeholders.set(pageUrl, (placeholders.get(pageUrl) ?? 0) + 1)
