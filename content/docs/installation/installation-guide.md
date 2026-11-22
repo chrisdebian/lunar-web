@@ -89,11 +89,11 @@ system reboot. Remove the installation media so it boots from the disk.
 Log in as root (or the user you created), then bring the system up to date:
 
 ```bash
-lin moonbase     # fetch the latest module list
-lunar update     # rebuild anything newer than what's installed
+lunar update
 ```
 
-`lunar update` compiles from source, so it can take a while, especially when there's a new kernel.
+This fetches the latest moonbase (the module list) and rebuilds anything newer than what's
+installed. It compiles from source, so it can take a while, especially when there's a new kernel.
 After that, install software with `lin`.
 
 ## Troubleshooting
