@@ -1,120 +1,114 @@
 ---
 title: "Installation Guide"
-description: "Step-by-step guide to installing Lunar Linux"
+description: "Step-by-step guide to installing Lunar Linux from the daily ISO"
 category: "installation"
 order: 2
-lastUpdated: 2025-11-02
+lastUpdated: 2026-11-21
 tags: [installation, guide, setup]
 relatedDocs: [requirements]
 ---
 
-This guide walks you through installing Lunar Linux on your system.
+This guide walks you through installing Lunar Linux from the daily ISO. The installer is a text menu:
+move with the arrow keys, or press the highlighted letter of an item, and confirm with Enter.
 
 ## Before You Begin
 
-Ensure you have:
+Make sure you have:
 - Met the [system requirements](/docs/installation/requirements)
 - Backed up any important data
-- Created a bootable Lunar Linux USB drive
+- Downloaded the latest ISO from the [download page](/download), checked it against its SHA-256
+  file, and written it to a USB drive (or attached it to a virtual machine)
 
-## Installation Steps
+## 1. Boot the ISO
 
-### 1. Boot from Installation Media
+Boot from the USB drive. You will see the Lunar welcome text and a `boot:` prompt:
 
-1. Insert the Lunar Linux installation media
-2. Restart your computer
-3. Enter BIOS/UEFI settings (usually F2, F12, or Del key)
-4. Set boot priority to USB/CD drive
-5. Save and exit
+- **Enter** starts the installer (it also starts by itself after a minute)
+- **F2** describes booting when you need special drivers loaded
+- **F3** describes safe mode booting
 
-### 2. Start the Installer
+The installer starts automatically once the system has booted; you don't need to log in or type a
+command. Its first screen offers an introduction to Lunar Linux (**I**), a rescue shell (**X**) and
+**F** to move one step forward. Every later screen has the same **F** (forward) and **B** (back).
 
-Once booted, you'll see the Lunar Linux welcome screen.
+## 2. System Defaults
 
-Start the installation process:
+Optional settings that make the system friendlier:
+
+- **C** keyboard map
+- **D** console font
+- **E** global language
+- **A** time zone
+- **J** default editor
+
+## 3. Partitions
+
+Choose **P** (Partition discs) and pick the disk. You can then use:
+
+- **express_mkpart**: creates a basic partition table and chooses the target filesystems for you
+- **cfdisk**, **fdisk** or **parted**: partition by hand
+
+`express_mkpart` erases the disk you pick. On a blank disk it creates a GPT partition table with:
+
+| Partition | Use |
+| --- | --- |
+| 1 MB | BIOS boot partition (needed by GRUB on GPT) |
+| about 512 MB | `/boot`, ext4 |
+| the rest | `/`, ext4 |
+| a few GB | swap |
+
+If you partition by hand, use **M** (Select target partitions) to say where each partition is mounted
+and which filesystem it gets. **W** sets up Linux software RAID, and **S** adds a swapfile.
+
+## 4. Boot Loader
+
+Choose **L** (Select boot loader). The choices are **grub2** or **none**. For grub2, pick the disk to
+install it on (normally the same disk).
+
+## 5. Install
+
+Choose **T** (Install lunar) and confirm. The installer creates the filesystems and installs the
+packages straight from the ISO, so no network connection is needed at this point. It only takes a few
+minutes.
+
+## 6. Final Preparations
+
+Before rebooting you can:
+
+- **R** set the root password (strongly recommended)
+- **O** configure compiler optimisations
+- **U** set up user accounts
+- **H** set up the host name and networking (DHCP or a manual address)
+- **V** choose which services start at boot (`lservices` does the same after rebooting)
+
+All except the root password can also be done later. Choose **Z** (Finished installing!) and let the
+system reboot. Remove the installation media so it boots from the disk.
+
+## After Installation
+
+Log in as root (or the user you created), then bring the system up to date:
 
 ```bash
-lunar-install
+lunar update
 ```
 
-### 3. Partition Your Disk
-
-The installer will guide you through disk partitioning.
-
-**Recommended partition scheme:**
-
-```
-/dev/sda1  512M   EFI System Partition (if UEFI)
-/dev/sda2  4G     Swap
-/dev/sda3  Rest   Root filesystem (/)
-```
-
-### 4. Select Installation Profile
-
-Choose your installation profile:
-- **Minimal** - Basic system only
-- **Desktop** - Includes X11 and desktop environment
-- **Server** - Optimized for server use
-
-### 5. Configure Network
-
-Configure your network connection for package downloads during installation.
-
-### 6. Install Base System
-
-The installer will:
-- Format partitions
-- Install base packages
-- Configure bootloader
-
-This may take 30-60 minutes depending on your system and internet speed.
-
-### 7. Set Root Password
-
-When prompted, set a secure root password.
-
-### 8. Create User Account
-
-Create your primary user account:
-
-```bash
-useradd -m -G wheel username
-passwd username
-```
-
-### 9. Reboot
-
-Once installation completes:
-
-```bash
-reboot
-```
-
-Remove the installation media when prompted.
-
-## Post-Installation
-
-After rebooting into your new system:
-
-1. Log in with your user account
-2. Update the system: `lunar update`
-3. Install additional software as needed
+This fetches the latest moonbase (the module list) and rebuilds anything newer than what's
+installed. It compiles from source, so it can take a while, especially when there's a new kernel.
+After that, install software with `lin`.
 
 ## Troubleshooting
 
 ### Boot Issues
 
-If system won't boot:
-- Verify BIOS/UEFI boot order
-- Check bootloader configuration
-- Ensure partitions were formatted correctly
+If the system won't boot from the disk:
+- Check the firmware's boot order, and that the installation media is removed
+- Check that the boot loader was installed to the disk you boot from
 
 ### Network Issues
 
-If network isn't working:
-- Check network cable connection
-- Verify network configuration
-- Test with: `ping -c 3 lunar-linux.org`
+If there's no network after rebooting:
+- Run `lnet` to check or change the network settings
+- Test with `curl -sI https://github.com` (some virtual machines don't pass `ping`)
 
 ## Next Steps
 
