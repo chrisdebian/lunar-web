@@ -1,7 +1,9 @@
 <template>
-  <div class="px-6 pt-12 pb-24">
-    <div class="container mx-auto max-w-5xl">
-      <header class="flex flex-wrap items-end justify-between gap-6">
+  <div class="px-6 pt-10 pb-24">
+    <div class="container mx-auto max-w-4xl">
+      <Breadcrumb :items="[{ label: 'Documentation', path: '/docs' }]" />
+
+      <header class="mt-10 flex flex-wrap items-end justify-between gap-6">
         <div class="max-w-xl">
           <h1 class="text-4xl font-bold tracking-[-0.035em] text-white sm:text-5xl">
             Documentation
@@ -18,7 +20,7 @@
             >pre-flight briefing</NuxtLink>.
           </p>
         </div>
-        <SearchLauncher class="sm:w-80">
+        <SearchLauncher class="sm:w-72">
           Where are you headed?
         </SearchLauncher>
       </header>

@@ -1,6 +1,6 @@
 <template>
   <div class="px-6 pt-10 pb-24">
-    <div class="container mx-auto max-w-5xl">
+    <div class="container mx-auto max-w-4xl">
       <Breadcrumb :items="[{ label: 'News', path: '/news' }]" />
 
       <div class="mt-10 lg:grid lg:grid-cols-[8rem_minmax(0,1fr)] lg:gap-x-12">
