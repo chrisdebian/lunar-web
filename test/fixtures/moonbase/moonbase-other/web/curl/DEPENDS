@@ -1,0 +1,8 @@
+depends %SSL
+depends nghttp2   # not in this moonbase
+optional_depends zlib \
+                 "--with-zlib" "--without-zlib" \
+                 "for compressed transfers" "y"
+if module_installed rocket ; then
+  depends rocket
+fi

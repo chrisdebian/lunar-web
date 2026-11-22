@@ -5,9 +5,10 @@ type SitemapEntry = { path: string, lastmod?: string | Date }
 
 export default defineEventHandler(async (event) => {
   const { siteUrl } = useRuntimeConfig(event).public
-  const [docs, news] = await Promise.all([
+  const [docs, news, moonbase] = await Promise.all([
     queryCollection(event, 'docs').select('path', 'lastUpdated').all(),
-    queryCollection(event, 'news').select('path', 'date').all()
+    queryCollection(event, 'news').select('path', 'date').all(),
+    loadMoonbaseIndex()
   ])
 
   const entries: SitemapEntry[] = [
@@ -17,7 +18,10 @@ export default defineEventHandler(async (event) => {
     { path: '/history' },
     { path: '/about' },
     ...docs.map(doc => ({ path: doc.path, lastmod: doc.lastUpdated })),
-    ...news.map(article => ({ path: article.path, lastmod: article.date }))
+    ...news.map(article => ({ path: article.path, lastmod: article.date })),
+    { path: '/modules' },
+    ...moonbaseOverview(moonbase).sections.map(section => ({ path: `/modules/section/${section.name}` })),
+    ...moonbase.modules.map(module => ({ path: modulePath(module.name), lastmod: module.lastChange?.date ?? module.updated ?? undefined }))
   ]
 
   const urls = entries.map(({ path, lastmod }) => {

@@ -64,3 +64,39 @@
     cursor: pointer;
   }
 }
+
+/* Split-flap tiles for the arrivals board on the homepage (engine in composables/useSplitFlap.ts).
+   A board sets --tile and --gap, in em, so it scales as one. */
+.flaps {
+  display: inline-flex;
+  gap: var(--gap, 0.06em);
+}
+
+.flap {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: var(--tile, 0.82em);
+  height: 1.65em;
+  border-radius: 2px;
+  background: linear-gradient(to bottom, #1c2244 0 50%, #171c3a 50% 100%);
+  box-shadow: inset 0 -1px 0 rgb(0 0 0 / 0.45), 0 1px 0 rgb(255 255 255 / 0.03);
+  /* Inter, semibold: much easier to read in small tiles than a thin monospace */
+  color: var(--color-indigo-50);
+  font-weight: 600;
+  line-height: 1;
+  white-space: pre;
+  /* Keeps the split line below behind the character */
+  isolation: isolate;
+}
+
+/* The split between the two halves of a flap, behind the character */
+.flap::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset-inline: 0;
+  top: 50%;
+  height: 1px;
+  background: rgb(3 7 18 / 0.8);
+}

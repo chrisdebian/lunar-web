@@ -1,0 +1,5 @@
+          MODULE=oldtool
+         VERSION=0.9
+           SHORT="Upstream went quiet"
+cat << EOF
+EOF

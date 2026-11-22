@@ -133,6 +133,19 @@
                   </NuxtLink>
                 </li>
               </ul>
+              <!-- Docs only; modules have their own search, one step away -->
+              <NuxtLink
+                v-if="query.trim()"
+                :to="{ path: '/modules', query: { q: query.trim() } }"
+                class="mt-1 flex items-center justify-between gap-3 rounded-lg p-3 text-sm text-gray-400 transition-colors hover:bg-gray-900 hover:text-white"
+                @click="close"
+              >
+                <span>Search modules for "<span class="text-white">{{ query.trim() }}</span>"</span>
+                <Icon
+                  name="ph:arrow-right"
+                  class="h-4 w-4 shrink-0"
+                />
+              </NuxtLink>
             </div>
 
             <div

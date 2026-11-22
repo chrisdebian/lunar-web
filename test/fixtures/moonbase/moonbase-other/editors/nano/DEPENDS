@@ -1,0 +1,2 @@
+optional_depends %SSL "" "" "for nothing really"
+optional_depends_one_of "a spell checker" @aspell "" "" hunspell "" ""

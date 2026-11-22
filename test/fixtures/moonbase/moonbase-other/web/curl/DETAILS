@@ -1,0 +1,13 @@
+          MODULE=curl
+         VERSION=8.17.0
+            BASE=$(echo $VERSION | cut -d. -f1,2)
+          SOURCE=$MODULE-$VERSION.tar.xz
+ SOURCE_URL_FULL=https://curl.se/download/$SOURCE
+        WEB_SITE=https://curl.se
+         ENTERED=20020115
+         UPDATED=20261105
+           SHORT="Client for URLs, $BASE series"
+cat << EOF
+    curl is a command line tool for transferring data
+    with URL syntax.
+EOF

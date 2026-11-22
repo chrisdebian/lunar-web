@@ -1,0 +1,5 @@
+          MODULE=nano
+         VERSION=8.7.1
+           SHORT="Superior clone of the pico text editor"
+cat << EOF
+EOF

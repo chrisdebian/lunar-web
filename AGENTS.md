@@ -28,8 +28,8 @@ docker compose up dev         # dev server in Docker (no local Node), http://loc
 - `app/components/content/ProsePre.vue`: overrides Markdown code blocks (copy button). In MDC, `ProsePre` = block, `ProseCode` = inline code
 - `app/composables/`: `useDocsNavigation` (tree for sidebar and breadcrumbs), `useDocSearch` (FlexSearch over `/search.json`), `useSiteLinks` (`withBase`, `absoluteUrl`), `usePageSeo` (title, description, canonical, OG)
 - `content.config.ts`: collections `docs` (`content/docs/**`), `news` (`content/news/*`), `download` (`content/download.md`; its `featured` frontmatter also feeds the homepage Downloads section), and `history` and `about` (`content/history.md`, `content/about.md`; their chapters, family tree, moonlight calendar, fact sheet and launch sequence are MDC components in `app/components/content/` with their data inline) with zod schemas
-- `server/routes/`: `rss.xml`, `sitemap.xml`, `robots.txt`, `search.json`, `moonbase-arrivals.json` (logic in `server/utils/moonbase.ts`); all prerendered
-- `scripts/`: `check-content.mjs` and `check-links.mjs` (content and built-site link validation), `moonbase-feed.mjs` (live arrivals feed)
+- `server/routes/`: `rss.xml`, `sitemap.xml`, `robots.txt`, `search.json`, `moonbase-arrivals.json` (logic in `server/utils/moonbase.ts`), `modules/index.json` (the module index, read by `server/utils/moonbaseIndex.ts`); all prerendered
+- `scripts/`: `check-content.mjs` and `check-links.mjs` (content and built-site link validation), `moonbase-feed.mjs` (live arrivals feed), `moonbase-index.mjs` (`yarn moonbase:index`: builds the module index from git clones; the parser and builder are in `scripts/lib/`, types in `shared/types/moonbase-index.ts`)
 - `content/news/`: one file per post, named `YYYY-MM-DD-slug.md` after its `date` (`check-content` enforces it). Posts up to 2023 were imported from the old WordPress site
 - `docker/legacy-redirects.conf`: nginx 301s from the old WordPress news URLs (`/YYYY/MM/DD/slug/`) to `/news/…`, and nothing else. Only used when served at the root. `test/legacy-redirects.test.ts` checks every target exists, so renaming a news file means updating this list
 
@@ -187,6 +187,13 @@ mask "pen" line that has `pathLength` but no `non-scaling-stroke`.
   reading-time hook in `nuxt.config.ts`.
 - **`server/utils/moonbase.ts` is also run directly by Node** (`scripts/moonbase-feed.mjs`, in the
   moonbase-feed workflow, with no install). Keep it free of imports and of TypeScript that Node can't
-  strip (no enums, namespaces or parameter properties).
+  strip (no enums, namespaces or parameter properties). The same goes for `scripts/lib/*.ts` and
+  `shared/types/moonbase-index.ts` (`scripts/moonbase-index.mjs`, in the Pages workflow), which may
+  import only Node built-ins and each other, with explicit `.ts` extensions.
+- **The site never builds the module index.** It reads `MOONBASE_INDEX` (default
+  `.data/moonbase-index.json`), else downloads the published copy, else uses an empty index. Only
+  the Pages and PR preview workflows run `yarn moonbase:index`. Module files are read, never executed: the parser
+  understands the shell that modules use and leaves out what it can't work out, and it's tested
+  against a fixture moonbase in `test/fixtures/moonbase/`.
 - **Workflow files can't be pushed with `gh`'s default token** (it lacks the `workflow` scope); push
   over SSH or run `gh auth refresh -s workflow`.

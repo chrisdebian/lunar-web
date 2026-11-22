@@ -31,6 +31,11 @@ export type Arrival = {
   crew: string
   date: string
   url: string
+  /**
+   * The module has a page on this build of the site (/modules/<module>). Set by the prerendered
+   * route only: the live feed doesn't know the site's module index.
+   */
+  page?: true
 }
 
 export type MoonbaseArrivals = {
@@ -66,7 +71,7 @@ const CO_AUTHOR = /^co-authored-by:\s*(.+?)\s*<([^>]+)>\s*$/gim
 // 12345+login@users.noreply.github.com, or login@users.noreply.github.com for older accounts
 const NOREPLY = /^(?:\d+\+)?([\w[\]-]+)@users\.noreply\.github\.com$/i
 
-const isBot = (email: string, login?: string) => {
+export const isBot = (email: string, login?: string) => {
   const name = (login ?? email.match(NOREPLY)?.[1] ?? '').toLowerCase()
   return BOT_EMAILS.has(email.toLowerCase()) || BOT_LOGINS.has(name) || name.endsWith('[bot]')
 }

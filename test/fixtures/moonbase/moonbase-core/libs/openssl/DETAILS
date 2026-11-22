@@ -1,0 +1,11 @@
+          MODULE=openssl
+         VERSION=3.6.0
+          SOURCE=$MODULE-$VERSION.tar.gz
+   SOURCE_URL[0]=https://github.com/openssl/openssl/releases/download/$MODULE-$VERSION/
+        WEB_SITE=https://www.openssl.org
+         ENTERED=20010922
+         UPDATED=20261101
+           SHORT="Toolkit for TLS"
+cat << EOF
+OpenSSL is a robust toolkit for TLS.
+EOF

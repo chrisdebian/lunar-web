@@ -1,0 +1,5 @@
+          MODULE=kf5
+         VERSION=5.116.0
+           SHORT="KDE Frameworks 5"
+cat << EOF
+EOF
