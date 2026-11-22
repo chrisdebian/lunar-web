@@ -15,7 +15,7 @@ import type {
   MoonbaseRepository
 } from '../../shared/types/moonbase-index.ts'
 import {
-  isoDay, LUNAR_URLS, parseAliases, parseConfigure, parseDepends, parseDetails, type Details, type RawDependency
+  isoDay, LUNAR_ENV, parseAliases, parseConfigure, parseDepends, parseDetails, type Details, type RawDependency
 } from './moonbase-parse.ts'
 
 /** Version bumps kept per module */
@@ -236,7 +236,7 @@ export const buildMoonbaseIndex = (repos: RepositoryCopy[], now = new Date()): B
     const text = found && (read(found.dir, 'DETAILS.x86_64') ?? read(found.dir, 'DETAILS'))
     const result = text
       ? parseDetails(text, {
-          env: new Map(Object.entries({ ...LUNAR_URLS, MODULE: name })),
+          env: new Map(Object.entries({ ...LUNAR_ENV, MODULE: name })),
           moduleVersion: other => detailsOf(other)?.env.get('VERSION') ?? null
         })
       : null

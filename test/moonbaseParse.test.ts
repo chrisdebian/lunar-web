@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  expandString, isoDay, parseAliases, parseConfigure, parseDepends, parseDetails, type ShellEnv
+  expandString, isoDay, LUNAR_ENV, parseAliases, parseConfigure, parseDepends, parseDetails, type ShellEnv
 } from '../scripts/lib/moonbase-parse.ts'
 
 const env = (values: Record<string, string>): ShellEnv => new Map(Object.entries(values))
@@ -142,6 +142,16 @@ depends after
       { module: 'two', conditional: true },
       { module: 'nasm', conditional: true },
       { module: 'after' }
+    ])
+  })
+
+  it('drops lunar\'s colour codes from descriptions', () => {
+    // From a real DEPENDS file
+    expect(parseDepends(
+      'optional_depends libiec61883 "" "" "for DV support, ${PROBLEM_COLOR}if you say yes here then say yes to libavc1394${DEFAULT_COLOR}"',
+      { env: new Map(Object.entries({ ...LUNAR_ENV, MODULE: 'ffmpeg' })) }
+    )).toEqual([
+      { module: 'libiec61883', optional: { description: 'for DV support, if you say yes here then say yes to libavc1394', default: null } }
     ])
   })
 

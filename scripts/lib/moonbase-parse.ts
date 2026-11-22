@@ -25,6 +25,18 @@ export const LUNAR_URLS: Record<string, string> = {
   MIRROR_URL: 'http://download.lunar-linux.org/lunar/mirrors/'
 }
 
+/**
+ * Lunar's terminal colours (lunar etc/config), used in lin's messages: "${PROBLEM_COLOR}say yes
+ * here${DEFAULT_COLOR}". Empty here, so they vanish from descriptions and questions.
+ */
+export const LUNAR_COLORS: Record<string, string> = Object.fromEntries([
+  'CHECK_COLOR', 'DEFAULT_COLOR', 'FILE_COLOR', 'LRM_COLOR', 'MESSAGE_COLOR', 'MODULE_COLOR',
+  'PROBLEM_COLOR', 'QUERY_COLOR', 'RESURRECT_COLOR', 'SYMLINK_COLOR', 'VERSION_COLOR'
+].map(name => [name, '']))
+
+/** What module files can rely on lunar to define: its mirrors and colours. */
+export const LUNAR_ENV: Record<string, string> = { ...LUNAR_URLS, ...LUNAR_COLORS }
+
 /** Variables the scripts see, by name. An array element is stored as `NAME[i]`; `NAME` is element 0. */
 export type ShellEnv = Map<string, string>
 
@@ -520,6 +532,9 @@ const yesNo = (value: string | null | undefined) => {
   return null
 }
 
+/** One line of text: collapses the spaces (and newlines) a removed colour code can leave behind. */
+const tidy = (text: string) => text.replace(/\s+/g, ' ').trim()
+
 /** Reads a DEPENDS file. Arguments are expanded with `ctx` (for `$MODULE` and the like). */
 export const parseDepends = (text: string, ctx: ExpandContext): RawDependency[] => {
   const dependencies: RawDependency[] = []
@@ -536,13 +551,13 @@ export const parseDepends = (text: string, ctx: ExpandContext): RawDependency[] 
       if (module) {
         dependencies.push({
           module,
-          optional: { description: arg(command[4]).trim(), default: yesNo(arg(command[5])) },
+          optional: { description: tidy(arg(command[4])), default: yesNo(arg(command[5])) },
           ...flags
         })
       }
     } else if (name === 'optional_depends_one_of') {
       // optional_depends_one_of "description" [@]module on off [@]module on off …
-      const description = arg(command[1]).trim()
+      const description = tidy(arg(command[1]))
       for (let i = 2; i < command.length; i += 3) {
         const raw = arg(command[i])
         if (!raw) continue
