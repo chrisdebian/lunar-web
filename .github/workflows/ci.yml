@@ -85,6 +85,10 @@ jobs:
           context: .
           load: true
           tags: lunar-www:ci
+          # The arrivals board reads the GitHub API at build time; without a token the
+          # shared runner IP often hits the 60-an-hour limit and the board is left out.
+          secrets: |
+            github_token=${{ secrets.GITHUB_TOKEN }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
