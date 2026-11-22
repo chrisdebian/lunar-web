@@ -20,6 +20,22 @@ import {
 
 /** Version bumps kept per module */
 const HISTORY = 5
+const ABSOLUTE_URL = /^(?:https?|ftp):\/\/[^\s/]+/i
+const GIT_SOURCE = /^git(?:\+https?)?:\/\//i
+
+/**
+ * The web address of a git source: `git+https://github.com/docker/cli.git:v28.5.0/cli-28.5.0.tar.gz`
+ * (lunar's form: repository, `:ref`, then the archive name lunar saves it as) → https://github.com/docker/cli
+ */
+export const gitRepository = (source: string) => {
+  const address = source.replace(/^git\+/i, '').replace(/^git:\/\//i, 'https://')
+  const scheme = address.indexOf('://') + 3
+  const ref = address.indexOf(':', scheme)
+  return (ref === -1 ? address : address.slice(0, ref))
+    .replace(/\/[^/]+\.(?:tar(?:\.\w+)?|tgz|tbz2|zip)$/i, '')
+    .replace(/\/+$/, '')
+    .replace(/\.git$/i, '')
+}
 
 export type RepositoryCopy = {
   /** Full name: moonbase-core */
@@ -78,16 +94,23 @@ const credit = ({ name, email, trailers }: Author) => {
 
 export type ModuleHistory = { lastChange: ModuleCommit | null, history: ModuleVersionChange[] }
 
+/** `+   VERSION=4.4.3` (possibly quoted, possibly with a comment) in a diff */
+const VERSION_LINE = /^\+\s*VERSION=(['"]?)([^'"\s#]*)\1/m
+
 /**
- * Each module's latest change and recent version bumps, from two `git log` outputs:
+ * Each module's latest change and recent versions, from three `git log` outputs:
  * - `authorLog`: every commit's author, subject and co-authors (AUTHOR_FORMAT)
  * - `landedLog`: what landed on master, newest first, each with the files it changed against the
  *   previous master (LANDED_FORMAT, `--first-parent --diff-merges=first-parent --name-only`)
+ * - `versionLog`: the same commits that changed a `VERSION=` line in a DETAILS file, as a diff
+ *   (LANDED_FORMAT, `--first-parent --diff-merges=first-parent -G VERSION= -p --unified=0`)
  *
+ * Versions come from what the commit wrote, not its subject: "cmake: Bump to 4.4.1." can set
+ * 4.4.3. Only a computed version (`VERSION=$(module_version kf5)`) falls back to the subject.
  * A merge is dated when it landed and credited to the pull request's last commit, so a change
  * that waited in review isn't shown as older than it is, nor credited to whoever merged it.
  */
-export const parseHistory = (authorLog: string, landedLog: string, modulePaths: Iterable<string>) => {
+export const parseHistory = (authorLog: string, landedLog: string, modulePaths: Iterable<string>, versionLog = '') => {
   const authors = new Map<string, Author>()
   for (const record of authorLog.split('\x1e')) {
     const [sha, name, email, subject, trailers] = record.replace(/\n$/, '').split('\x1f')
@@ -100,25 +123,54 @@ export const parseHistory = (authorLog: string, landedLog: string, modulePaths: 
     return null
   }
 
-  const result = new Map<string, ModuleHistory>()
-  for (const record of landedLog.split('\x1e')) {
-    const [header, ...files] = record.split('\n')
-    const [sha, parents = '', date] = header!.split('\x1f')
-    if (!sha || !date) continue
+  /** A landed commit, credited and dated, or null if its author is unknown */
+  const landed = (header: string) => {
+    const [sha, parents = '', date] = header.split('\x1f')
+    if (!sha || !date) return null
     const work = parents.split(' ')[1] ?? sha // a merge: the pull request's last commit
     const author = authors.get(work) ?? authors.get(sha)
-    if (!author) continue
-    const commit: ModuleCommit = { commit: sha, date: new Date(date).toISOString(), author: credit(author), subject: author.subject }
-    const bump = parseVersionBump(author.subject)
+    if (!author) return null
+    return { commit: sha, date: new Date(date).toISOString(), author: credit(author), subject: author.subject }
+  }
 
-    const touched = new Set(files.map(file => file.trim() && moduleOf(file.trim())).filter((dir): dir is string => !!dir))
-    for (const dir of touched) {
-      let entry = result.get(dir)
-      if (!entry) result.set(dir, entry = { lastChange: commit, history: [] })
-      if (bump && bump.module === basename(dir) && entry.history.length < HISTORY) {
-        const { subject: _, ...landed } = commit
-        entry.history.push({ ...landed, version: bump.version })
+  const result = new Map<string, ModuleHistory>()
+  const entryOf = (dir: string, commit: ModuleCommit) => {
+    let entry = result.get(dir)
+    if (!entry) result.set(dir, entry = { lastChange: commit, history: [] })
+    return entry
+  }
+
+  for (const record of landedLog.split('\x1e')) {
+    const [header, ...files] = record.split('\n')
+    const commit = landed(header!)
+    if (!commit) continue
+    for (const file of files) {
+      const dir = file.trim() && moduleOf(file.trim())
+      if (dir) entryOf(dir, commit)
+    }
+  }
+
+  for (const record of versionLog.split('\x1e')) {
+    const [header = '', ...diff] = record.split('\n')
+    const commit = landed(header)
+    if (!commit) continue
+    const { subject, ...change } = commit
+    // One part per file: "diff --git a/libs/zlib/DETAILS b/libs/zlib/DETAILS" and its lines
+    for (const part of diff.join('\n').split(/^diff --git /m).slice(1)) {
+      const file = part.match(/^a\/(\S+)/)?.[1]
+      const dir = file && moduleOf(file)
+      const written = part.match(VERSION_LINE)?.[2]
+      if (!dir || !written) continue
+      let version: string | undefined = written
+      if (written.includes('$')) {
+        const bump = parseVersionBump(subject)
+        version = bump?.module === basename(dir) ? bump.version : undefined
       }
+      const entry = result.get(dir)
+      if (!version || !entry || entry.history.length >= HISTORY) continue
+      const newest = entry.history.at(-1)
+      if (newest?.version === version) continue // DETAILS and DETAILS.x86_64, or a no-op edit
+      entry.history.push({ ...change, version })
     }
   }
   return result
@@ -126,9 +178,11 @@ export const parseHistory = (authorLog: string, landedLog: string, modulePaths: 
 
 const readHistory = (repo: RepositoryCopy, modulePaths: string[]) => {
   if (!existsSync(join(repo.dir, '.git'))) return new Map<string, ModuleHistory>()
+  const landed = ['log', '--first-parent', '--diff-merges=first-parent', `--format=${LANDED_FORMAT}`]
   const authorLog = git(repo.dir, ['log', `--format=${AUTHOR_FORMAT}`, 'HEAD'])
-  const landedLog = git(repo.dir, ['log', '--first-parent', '--diff-merges=first-parent', '--name-only', `--format=${LANDED_FORMAT}`, 'HEAD'])
-  return parseHistory(authorLog, landedLog, modulePaths)
+  const landedLog = git(repo.dir, [...landed, '--name-only', 'HEAD'])
+  const versionLog = git(repo.dir, [...landed, '-G^[[:space:]]*VERSION=', '-p', '--unified=0', 'HEAD', '--', '*/DETAILS', '*/DETAILS.x86_64'])
+  return parseHistory(authorLog, landedLog, modulePaths, versionLog)
 }
 
 const readRepository = (repo: RepositoryCopy): MoonbaseRepository => {
@@ -209,10 +263,20 @@ export const buildMoonbaseIndex = (repos: RepositoryCopy[], now = new Date()): B
     const value = (name: string) => (info && !info.unresolved.has(name) && env.get(name)) || null
     if (info?.unresolved.has('VERSION')) warnings.push(`${found.name}: VERSION can't be worked out without running DETAILS`)
 
+    // Links only when they really are URLs: some files say `unknown`, `n/a` or `http:/host`
+    const url = (field: string, text: string | null) => {
+      if (!text || ABSOLUTE_URL.test(text)) return text
+      warnings.push(`${found.name}: ${field} "${text}" is not a URL`)
+      return null
+    }
     const sourceFull = value('SOURCE_URL_FULL')
     const sourceUrl = value('SOURCE_URL')
     const sourceFile = value('SOURCE')
-    const source = sourceFull ?? (sourceUrl && sourceFile ? `${sourceUrl.replace(/\/+$/, '')}/${sourceFile}` : null)
+    // A git source (`git+https://host/repo:ref`) links to its repository
+    const gitSource = [sourceFull, sourceUrl].find(candidate => candidate && GIT_SOURCE.test(candidate))
+    const source = url('SOURCE', gitSource
+      ? gitRepository(gitSource)
+      : sourceFull ?? (sourceUrl && sourceFile ? `${sourceUrl.replace(/\/+$/, '')}/${sourceFile}` : null))
 
     const segments = found.path.split('/')
     const short = found.repo.replace(/^moonbase-/, '')
@@ -230,7 +294,7 @@ export const buildMoonbaseIndex = (repos: RepositoryCopy[], now = new Date()): B
       section: segments.length > 1 ? segments[0]! : short,
       short: value('SHORT'),
       description: info?.description ?? null,
-      website: value('WEB_SITE'),
+      website: url('WEB_SITE', value('WEB_SITE')),
       source,
       entered: isoDay(value('ENTERED') ?? undefined),
       updated: isoDay(value('UPDATED') ?? undefined),
@@ -255,7 +319,9 @@ export const buildMoonbaseIndex = (repos: RepositoryCopy[], now = new Date()): B
     const seen = new Map<string, ModuleDependency>()
     for (const raw of rawDepends.get(module.name) ?? []) {
       if (raw.module === module.name) continue
-      const known = raw.module.startsWith('%') ? !!aliases[raw.module]?.length : byModule.has(raw.module)
+      const known = raw.module.startsWith('%')
+        ? !!aliases[raw.module]?.some(provider => byModule.has(provider))
+        : byModule.has(raw.module)
       const dependency: ModuleDependency = { ...raw, ...(known ? {} : { missing: true as const }) }
       const previous = seen.get(raw.module)
       if (!previous || (previous.optional && !raw.optional)) seen.set(raw.module, dependency)
@@ -291,7 +357,10 @@ export const buildMoonbaseIndex = (repos: RepositoryCopy[], now = new Date()): B
   const required = (name: string) =>
     (byModule.get(name)?.depends ?? [])
       .filter(dependency => !dependency.optional && !dependency.conditional && !dependency.missing)
-      .map(dependency => (dependency.module.startsWith('%') ? aliases[dependency.module]![0]! : dependency.module))
+      // An alias counts as the first of its providers that is in the moonbase
+      .map(dependency => (dependency.module.startsWith('%')
+        ? aliases[dependency.module]!.find(provider => byModule.has(provider)) ?? ''
+        : dependency.module))
       .filter(dependency => byModule.has(dependency))
   for (const module of modules) {
     const seen = new Set<string>([module.name])

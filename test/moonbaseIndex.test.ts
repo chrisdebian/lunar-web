@@ -1,6 +1,6 @@
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { AUTHOR_FORMAT, buildMoonbaseIndex, LANDED_FORMAT, parseHistory } from '../scripts/lib/moonbase-index.ts'
+import { AUTHOR_FORMAT, buildMoonbaseIndex, gitRepository, LANDED_FORMAT, parseHistory } from '../scripts/lib/moonbase-index.ts'
 
 const fixture = (name: string) => ({ name, dir: join(import.meta.dirname, 'fixtures/moonbase', name) })
 const { index, warnings } = buildMoonbaseIndex(
@@ -46,6 +46,11 @@ describe('buildMoonbaseIndex', () => {
       source: 'https://download.kde.org/stable/frameworks/5.116/kcoreaddons-5.116.0.tar.xz'
     })
     expect(module('zlib').source).toBe('https://downloads.sourceforge.net/sourceforge/libpng/zlib-1.3.1.tar.xz')
+  })
+
+  it('leaves out a website that is not a URL, with a warning', () => {
+    expect(module('libressl').website).toBeNull()
+    expect(warnings).toContain('libressl: WEB_SITE "http:/www.libressl.org" is not a URL')
   })
 
   it('merges aliases, earlier repositories first', () => {
@@ -109,7 +114,16 @@ describe('parseHistory', () => {
     landed('z1', '', '2026-09-01T10:00:00Z', ['libs/zlib/DETAILS', 'README'])
   ].join('')
 
-  const history = parseHistory(authorLog, landedLog, ['web/curl', 'libs/zlib'])
+  // What `git log … -G VERSION= -p --unified=0` prints for the commits that changed a version
+  const diff = (file: string, version: string) =>
+    `diff --git a/${file} b/${file}\nindex 1..2 100644\n--- a/${file}\n+++ b/${file}\n@@ -2 +2 @@\n-         VERSION=old\n+         VERSION=${version}\n`
+  const versionLog = [
+    `\x1e${'m2'}\x1f${'d1 p2'}\x1f2026-11-21T16:58:38+01:00\n\n${diff('web/curl/DETAILS', '8.17.0')}${diff('web/curl/DETAILS.x86_64', '8.17.0')}`,
+    `\x1e${'d0'}\x1f${'z1'}\x1f2026-10-01T10:00:00Z\n\n${diff('web/curl/DETAILS', '8.16.1')}`,
+    `\x1e${'z1'}\x1f\x1f2026-09-01T10:00:00Z\n\n${diff('libs/zlib/DETAILS', '$(module_version zlib-ng)')}`
+  ].join('')
+
+  const history = parseHistory(authorLog, landedLog, ['web/curl', 'libs/zlib'], versionLog)
 
   it('dates a merge when it landed and credits the pull request, or a bot\'s co-author', () => {
     expect(history.get('web/curl')!.lastChange).toEqual({
@@ -120,16 +134,34 @@ describe('parseHistory', () => {
     })
   })
 
-  it('keeps the version bumps, newest first', () => {
+  it('takes versions from what the commit wrote, once per commit, newest first', () => {
+    // d0's subject says 8.16.0, but it wrote 8.16.1 (like "cmake: Bump to 4.4.1." setting 4.4.3)
     expect(history.get('web/curl')!.history).toEqual([
       { commit: 'm2', date: '2026-11-21T15:58:38.000Z', author: 'Jane Doe', version: '8.17.0' },
-      { commit: 'd0', date: '2026-10-01T10:00:00.000Z', author: 'Joe', version: '8.16.0' }
+      { commit: 'd0', date: '2026-10-01T10:00:00.000Z', author: 'Joe', version: '8.16.1' }
     ])
+  })
+
+  it('falls back to the subject for a computed version', () => {
     expect(history.get('libs/zlib')!.history.map(change => change.version)).toEqual(['1.3.1'])
   })
 
   it('uses formats git understands', () => {
     expect(AUTHOR_FORMAT).toContain('%(trailers:key=Co-authored-by')
     expect(LANDED_FORMAT).toBe('%x1e%H%x1f%P%x1f%cI')
+  })
+})
+
+describe('gitRepository', () => {
+  // Real git sources from moonbase DETAILS files
+  it.each([
+    ['git+https://github.com/docker/cli.git:v28.5.0/cli-28.5.0.tar.gz', 'https://github.com/docker/cli'],
+    ['git+https://github.com/nix-community/acpi_call:8140017f9e995a8ddb57ac3036d959ff817934df', 'https://github.com/nix-community/acpi_call'],
+    ['git+https://github.com/Tencent/rapidjson/rapidjson-24b5e7a8.tar.gz', 'https://github.com/Tencent/rapidjson'],
+    ['git+https://github.com/sebastiencs/icons-in-terminal/', 'https://github.com/sebastiencs/icons-in-terminal'],
+    ['git://github.com/adobe/brackets/', 'https://github.com/adobe/brackets'],
+    ['git+https://code.qt.io/pyside/pyside-setup:tag=v6.13.0/pyside-setup-everywhere-src-6.13.0.tar.xz', 'https://code.qt.io/pyside/pyside-setup']
+  ])('%s', (source, expected) => {
+    expect(gitRepository(source)).toBe(expected)
   })
 })
