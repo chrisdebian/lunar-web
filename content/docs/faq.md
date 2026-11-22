@@ -207,7 +207,17 @@ If you do create your own zlocal copy, please consider submitting it on Github a
 
 What does this error mean and how can I fix it?
 
-This is basically the same problem as the C preprocessor error below: There are libraries missing that are vital to the compilation. You will have to restore them. See the next topic for how to do that.
+This is basically the same problem as the C preprocessor error below: There are libraries missing that are vital to the compilation.
+
+One of them found in `/usr/src/$MODULE-$VERSION/config.log` is:
+`ccache: error while loading shared libraries: libfmt.so.10: cannot open shared`
+
+This means that ccache needs to be disabled in the 'lunar optimize' menu, and the ccache module needs to be rebuilt. Then re-enable ccache and try the module that failed again.
+
+Another one found in config.log, is when gcc is built with the isl feature, then isl is updated with the shared library being renamed:
+`cc1: error while loading shared libraries: libisl.so.XX: cannot open shared object file: No such file or directory`
+
+You have to revert and resurrect the previous isl version first, then rebuild gcc without isl, go back to the current isl, then finally rebuild gcc with isl.
 
 ### configure: error: C preprocessor "/lib/cpp" fails sanity check
 
