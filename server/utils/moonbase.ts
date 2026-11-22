@@ -66,7 +66,7 @@ const CO_AUTHOR = /^co-authored-by:\s*(.+?)\s*<([^>]+)>\s*$/gim
 // 12345+login@users.noreply.github.com, or login@users.noreply.github.com for older accounts
 const NOREPLY = /^(?:\d+\+)?([\w[\]-]+)@users\.noreply\.github\.com$/i
 
-const isBot = (email: string, login?: string) => {
+export const isBot = (email: string, login?: string) => {
   const name = (login ?? email.match(NOREPLY)?.[1] ?? '').toLowerCase()
   return BOT_EMAILS.has(email.toLowerCase()) || BOT_LOGINS.has(name) || name.endsWith('[bot]')
 }

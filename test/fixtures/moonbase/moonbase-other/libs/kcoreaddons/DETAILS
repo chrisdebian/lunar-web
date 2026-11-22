@@ -1,0 +1,7 @@
+          MODULE=kcoreaddons
+         VERSION=$(module_version kf5)
+          SOURCE=$MODULE-$VERSION.tar.xz
+      SOURCE_URL=$KDE_URL/stable/frameworks/${VERSION%.*}
+           SHORT="Addons to QtCore"
+cat << EOF
+EOF

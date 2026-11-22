@@ -20,6 +20,23 @@ yarn install
 yarn dev          # http://localhost:3000, with hot reload
 ```
 
+### The moonbase module index
+
+The modules pages read one file: every moonbase module with its details, dependencies, dependents
+and recent history. You don't need to build it: without it, `yarn dev` and `yarn generate` use the
+copy published on the live site (`/modules/index.json`), and if that can't be fetched either, the
+modules pages are empty and the build still works.
+
+To build it yourself, from the moonbase repositories on GitHub:
+
+```bash
+yarn moonbase:index      # → .data/moonbase-index.json, picked up by a running yarn dev
+```
+
+The first run clones the 8 repositories with their history (about 110 MB, under a minute) into
+`.cache/moonbase`; later runs only fetch new commits. `MOONBASE_INDEX` points the site at another
+file, `MOONBASE_INDEX_URL` at another published copy.
+
 ### Develop with Docker
 
 No Node or Yarn needed. Your checkout is mounted into a Node container, so edits reload just
@@ -101,9 +118,12 @@ The build itself also fails if any page links to a page that doesn't exist.
   ones are listed in a "Broken external links" issue that is updated on later runs and closed when
   they all work again. Run it any time from the Actions tab.
 - `.github/workflows/pages.yml` publishes `main` to the root of the GitHub Pages site on every push,
-  e.g. `https://<owner>.github.io/<repo>/`.
+  e.g. `https://<owner>.github.io/<repo>/`, and daily. It builds the moonbase module index first
+  (with the clones cached between runs). Hourly, it compares the moonbase repositories with the
+  index it last published and rebuilds only if one of them changed, so the modules pages are at
+  most an hour behind.
 - `.github/workflows/pr-preview.yml` publishes every pull request to
-  `https://<owner>.github.io/<repo>/pr-preview/pr-<number>/`. Once the preview is live, it comments
+  `https://<owner>.github.io/<repo>/pr-preview/pr-<number>/`, with a freshly built module index. Once the preview is live, it comments
   the link (and a QR code, handy for testing on a phone) on the PR and adds a *View deployment*
   button. It updates on every push and is removed when the PR is closed or merged. PRs from forks
   get no preview: GitHub gives them a read-only token.
@@ -164,9 +184,10 @@ app/                  Nuxt application (pages, components, composables, layouts,
 content/docs/         Documentation pages (Markdown)
 content/news/         News articles (Markdown), one per file: YYYY-MM-DD-slug.md
 content.config.ts     Content collections and their frontmatter schemas
-server/routes/        rss.xml, sitemap.xml, robots.txt, the search index (search.json) and moonbase-arrivals.json
-server/utils/         Shared server code (moonbase.ts: the arrivals board data)
-scripts/              Content and link checks, the moonbase feed, the old-wiki import script
+server/routes/        rss.xml, sitemap.xml, robots.txt, the search index (search.json), moonbase-arrivals.json and modules/index.json
+server/utils/         Shared server code (moonbase.ts: the arrivals board data; moonbaseIndex.ts: reads the module index)
+shared/types/         Types used by both the site and the scripts (the module index)
+scripts/              Content and link checks, the moonbase feed and module index, the old-wiki import script
 docker/               nginx config for the Docker image
 public/               Files served as-is (favicon)
 ```

@@ -37,6 +37,8 @@ jobs:
         uses: ./.github/actions/build-site
         with:
           folder: pr-preview/pr-${{ github.event.number }}
+          # Real module data from the first build, whatever production last published
+          moonbase-index: 'true'
 
       - name: Publish the preview
         id: preview
