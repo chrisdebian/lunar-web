@@ -9,6 +9,11 @@
 #   docker build -t lunar-www \
 #     --build-arg NUXT_APP_BASE_URL=/lunar/ \
 #     --build-arg NUXT_PUBLIC_SITE_URL=https://example.org/lunar/ .
+#
+# The homepage's arrivals board reads the GitHub API at build time. Without a token GitHub
+# allows 60 requests an hour per IP and the board is left out; pass one as a build secret
+# (it never ends up in the image):
+#   GITHUB_TOKEN=$(gh auth token) docker build --secret id=github_token,env=GITHUB_TOKEN -t lunar-www .
 
 # --- Build -------------------------------------------------------------------
 FROM node:24-alpine AS build
@@ -26,7 +31,8 @@ RUN --mount=type=cache,target=/usr/local/share/.cache/yarn \
     yarn install --frozen-lockfile --ignore-scripts
 
 COPY . .
-RUN yarn nuxt prepare \
+RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
+    yarn nuxt prepare \
  && yarn check-content \
  && yarn generate \
  && yarn check-links
