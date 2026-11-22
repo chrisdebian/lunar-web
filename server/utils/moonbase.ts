@@ -55,15 +55,21 @@ export type Commit = {
 /*
  * Lunar Bot opens the version-bump PRs in moonbase-other and authors their commits, with the person
  * who asked for the update as a co-author ("Co-authored-by: Name <email>").
- * The board credits that person.
+ * When it squash-merges such a PR, GitHub makes the bot's own account (lunar-linux-b01, an ordinary
+ * user, not a GitHub App) the author and moves Lunar Bot into the co-authors.
+ * The board credits the person.
  */
 const BOT_EMAILS = new Set(['bot@lunar-linux.org'])
-const isBot = (email: string, login?: string) =>
-  BOT_EMAILS.has(email.toLowerCase()) || /\[bot\]$/.test(login ?? '') || /\[bot\]@users\.noreply\.github\.com$/i.test(email)
+const BOT_LOGINS = new Set(['lunar-linux-b01'])
 
 const CO_AUTHOR = /^co-authored-by:\s*(.+?)\s*<([^>]+)>\s*$/gim
 // 12345+login@users.noreply.github.com, or login@users.noreply.github.com for older accounts
-const NOREPLY = /^(?:\d+\+)?([\w-]+)@users\.noreply\.github\.com$/i
+const NOREPLY = /^(?:\d+\+)?([\w[\]-]+)@users\.noreply\.github\.com$/i
+
+const isBot = (email: string, login?: string) => {
+  const name = (login ?? email.match(NOREPLY)?.[1] ?? '').toLowerCase()
+  return BOT_EMAILS.has(email.toLowerCase()) || BOT_LOGINS.has(name) || name.endsWith('[bot]')
+}
 
 /** Co-authors from a commit message's `Co-authored-by:` trailers. */
 export const coAuthorsOf = (message: string) =>

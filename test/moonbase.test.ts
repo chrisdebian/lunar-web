@@ -207,6 +207,25 @@ describe('summarizeArrivals', () => {
       ]), byAda)).toBe('adamoon')
     })
 
+    it('credits the co-author of a pull request the bot account squash-merged', () => {
+      // Like lunar-tools 2026.11 in moonbase-core (7100caf): GitHub makes the bot's account the
+      // author and moves Lunar Bot into the co-authors
+      const squashed = botCommit('lunar-tools: Version bumped to 2026.11 (#4377)', 1, [
+        'Lunar Bot <bot@lunar-linux.org>',
+        'Ada Moon <ada@example.org>'
+      ])
+      squashed.author = { login: 'lunar-linux-b01' }
+      squashed.commit.author = { name: 'lunar-linux-b01', email: 'lunar-linux-b01@users.noreply.github.com' }
+      expect(crewOf(squashed, byAda)).toBe('adamoon')
+    })
+
+    it('skips the bot account as a co-author', () => {
+      expect(crewOf(botCommit('atuin: Version bumped to 18.25.1', 1, [
+        'lunar-linux-b01 <lunar-linux-b01@users.noreply.github.com>',
+        'Ada Moon <ada@example.org>'
+      ]), byAda)).toBe('adamoon')
+    })
+
     it('stays with the bot when nobody co-authored it', () => {
       expect(crewOf(botCommit('atuin: Version bumped to 18.25.1', 1, []))).toBe('Lunar Bot')
     })
